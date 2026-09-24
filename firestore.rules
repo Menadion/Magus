@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Who can see what in Magus. Paste into Firebase console > Firestore Database > Rules > Publish.
+//
+//   families/{code}                  anyone signed in can check a code exists (to join) or make a new one
+//   families/{code}/members/{uid}    only members of that family can read it; you can only write your own
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(code) {
+      return exists(/databases/$(database)/documents/families/$(code)/members/$(request.auth.uid));
+    }
+
+    match /families/{code} {
+      // "get" is one family by its code. Listing every family is not allowed.
+      allow get: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+
+      match /members/{uid} {
+        allow read: if signedIn() && isMember(code);
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && exists(/databases/$(database)/documents/families/$(code));
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+    }
+  }
+}
