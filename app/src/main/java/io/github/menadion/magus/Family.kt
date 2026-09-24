@@ -3,6 +3,7 @@ package io.github.menadion.magus
 import android.content.Context
 import android.location.Location
 import android.os.BatteryManager
+import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -21,13 +22,15 @@ data class Member(
     val lng: Double,
     val battery: Int?,
     val updatedAtMillis: Long?,
+    val sharing: Boolean,
 )
 
 // Everything the app knows about "my family": what's saved on this phone, and what's in Firebase.
 //
 // In Firebase:
-//   families/{code}                   who made it, and when
-//   families/{code}/members/{uid}     name, latest location, battery, last seen (overwritten, never a history)
+//   families/{code}                   family name, who made it, and when
+//   families/{code}/members/{uid}     name, sharing on/off, latest location, battery, last seen
+//                                     (overwritten, never a history)
 object Family {
     // No I or O, so nobody reads a 1 or a 0 by mistake.
     private const val CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
@@ -37,9 +40,30 @@ object Family {
 
     fun savedName(context: Context): String? = prefs(context).getString("name", null)
     fun savedCode(context: Context): String? = prefs(context).getString("familyCode", null)
+    fun savedFamilyName(context: Context): String? = prefs(context).getString("familyName", null)
+    fun isSharing(context: Context): Boolean = prefs(context).getBoolean("sharing", true)
 
-    private fun save(context: Context, name: String, code: String) {
-        prefs(context).edit().putString("name", name).putString("familyCode", code).apply()
+    private fun save(context: Context, name: String, code: String, familyName: String?) {
+        prefs(context).edit()
+            .putString("name", name)
+            .putString("familyCode", code)
+            .putString("familyName", familyName)
+            .putBoolean("sharing", true)
+            .apply()
+    }
+
+    // "Santos Family", or "your Family" for a family made before names existed.
+    fun familyLabel(context: Context): String = "${savedFamilyName(context) ?: "your"} Family"
+
+    // Turns my sharing on or off, on this phone and for everyone else's map (green or grey dot).
+    fun setSharing(context: Context, on: Boolean) {
+        prefs(context).edit().putBoolean("sharing", on).apply()
+        val code = savedCode(context) ?: return
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        db.collection("families").document(code).collection("members").document(uid)
+            .set(mapOf("sharing" to on), SetOptions.merge())
+            .addOnSuccessListener { Log.d("Magus", "setSharing($on) saved") }
+            .addOnFailureListener { Log.w("Magus", "setSharing($on) failed", it) }
     }
 
     // Signs in anonymously if this phone hasn't yet, and returns this phone's ID.
@@ -50,15 +74,17 @@ object Family {
     }
 
     // Makes a new family with a fresh code, adds me to it, and returns the code.
-    suspend fun create(context: Context, name: String): String {
+    suspend fun create(context: Context, name: String, familyName: String): String {
         val uid = myId()
         repeat(5) {
             val code = (1..6).map { CODE_LETTERS.random() }.joinToString("")
             val family = db.collection("families").document(code)
             if (!family.get().await().exists()) {
-                family.set(mapOf("createdBy" to uid, "createdAt" to FieldValue.serverTimestamp())).await()
-                family.collection("members").document(uid).set(mapOf("name" to name)).await()
-                save(context, name, code)
+                family.set(
+                    mapOf("name" to familyName, "createdBy" to uid, "createdAt" to FieldValue.serverTimestamp())
+                ).await()
+                family.collection("members").document(uid).set(mapOf("name" to name, "sharing" to true)).await()
+                save(context, name, code, familyName)
                 return code
             }
         }
@@ -70,13 +96,16 @@ object Family {
         val code = typedCode.trim().uppercase()
         val uid = myId()
         val family = db.collection("families").document(code)
-        if (!family.get().await().exists()) error("No family with the code $code.")
-        family.collection("members").document(uid).set(mapOf("name" to name), SetOptions.merge()).await()
-        save(context, name, code)
+        val found = family.get().await()
+        if (!found.exists()) error("No family with the code $code.")
+        family.collection("members").document(uid)
+            .set(mapOf("name" to name, "sharing" to true), SetOptions.merge()).await()
+        save(context, name, code, found.getString("name"))
     }
 
     // Overwrites my latest location. Nothing older is kept.
     fun sendLocation(context: Context, location: Location) {
+        if (!isSharing(context)) return
         val code = savedCode(context) ?: return
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val battery = (context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager)
@@ -87,6 +116,7 @@ object Family {
                 "lat" to location.latitude,
                 "lng" to location.longitude,
                 "battery" to battery,
+                "sharing" to true,
                 "updatedAt" to FieldValue.serverTimestamp(),
             ),
             SetOptions.merge(),
@@ -97,8 +127,12 @@ object Family {
     fun listen(context: Context, onChange: (List<Member>) -> Unit): ListenerRegistration? {
         val code = savedCode(context) ?: return null
         return db.collection("families").document(code).collection("members")
-            .addSnapshotListener { snapshot, _ ->
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) Log.w("Magus", "family listener error", error)
                 if (snapshot == null) return@addSnapshotListener
+                Log.d("Magus", "family update: " + snapshot.documents.joinToString {
+                    "${it.getString("name")}=${it.getBoolean("sharing")}"
+                })
                 val members = snapshot.documents.mapNotNull { doc ->
                     val lat = doc.getDouble("lat") ?: return@mapNotNull null
                     val lng = doc.getDouble("lng") ?: return@mapNotNull null
@@ -109,6 +143,7 @@ object Family {
                         lng = lng,
                         battery = doc.getLong("battery")?.toInt(),
                         updatedAtMillis = doc.getTimestamp("updatedAt")?.toDate()?.time,
+                        sharing = doc.getBoolean("sharing") ?: true,
                     )
                 }
                 onChange(members)

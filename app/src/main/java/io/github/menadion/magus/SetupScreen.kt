@@ -24,13 +24,14 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
-// First open: pick a name, then make a family or join one with its code.
+// First open: pick a name, then make a family (with a family name) or join one with its code.
 @Composable
 fun SetupScreen(onDone: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var name by remember { mutableStateOf("") }
+    var familyName by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<String?>(null) }
@@ -65,9 +66,19 @@ fun SetupScreen(onDone: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
 
+        OutlinedTextField(
+            value = familyName,
+            onValueChange = { familyName = it },
+            label = { Text("Family name, e.g. Santos") },
+            suffix = { Text("Family") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
         Button(
-            onClick = { attempt { Family.create(context, name.trim()) } },
-            enabled = !busy && name.isNotBlank(),
+            onClick = { attempt { Family.create(context, name.trim(), familyName.trim()) } },
+            enabled = !busy && name.isNotBlank() && familyName.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Create family") }
 

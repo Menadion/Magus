@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.os.SystemClock
@@ -15,13 +16,18 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -55,7 +62,9 @@ import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression.color
 import org.maplibre.android.style.expressions.Expression.get
+import org.maplibre.android.style.expressions.Expression.switchCase
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.PropertyFactory.circleColor
 import org.maplibre.android.style.layers.PropertyFactory.circleRadius
@@ -87,7 +96,11 @@ private const val SEND_EVERY_MS = 60_000L
 
 private const val FAMILY_SOURCE = "family"
 
-// Step 3: first open asks for a name and a family, then the map shows everyone in it.
+// Dot colours: sharing right now, or switched off.
+private const val SHARING_GREEN = "#2E7D32"
+private const val PAUSED_GREY = "#9E9E9E"
+
+// First open asks for a name and a family, then the map shows everyone in it.
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,10 +113,7 @@ class MainActivity : ComponentActivity() {
                     if (familyCode == null) {
                         SetupScreen(onDone = { code = Family.savedCode(this) })
                     } else {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            FamilyMap()
-                            FamilyStrip(familyCode, Family.savedName(this@MainActivity))
-                        }
+                        FamilyScreen(familyCode)
                     }
                 }
             }
@@ -111,42 +121,115 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// The map, the top strip with the sharing switch, and the steps that let sharing run in the background.
 @Composable
-fun FamilyMap() {
+fun FamilyScreen(code: String) {
+    val context = LocalContext.current
+    var sharing by remember { mutableStateOf(Family.isSharing(context)) }
+    var explainBackground by remember { mutableStateOf(false) }
+
+    val askBackground = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { ShareService.start(context) }
+
+    val askNotifications = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        if (isGranted(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) ShareService.start(context)
+        else explainBackground = true
+    }
+
+    // Once location is allowed and switched on: notifications, then "Allow all the time", then start sharing.
+    fun startSharingSteps() {
+        if (!Family.isSharing(context)) return
+        when {
+            Build.VERSION.SDK_INT >= 33 && !isGranted(context, Manifest.permission.POST_NOTIFICATIONS) ->
+                askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+            !isGranted(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) -> explainBackground = true
+            else -> ShareService.start(context)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        FamilyMap(onLocationReady = { startSharingSteps() })
+        FamilyStrip(
+            code = code,
+            sharing = sharing,
+            onToggle = {
+                sharing = !sharing
+                Family.setSharing(context, sharing)
+                if (sharing) startSharingSteps() else ShareService.stop(context)
+            },
+        )
+    }
+
+    if (explainBackground) {
+        // "Not now" still shares, but only after Magus has been opened since the phone last restarted.
+        AlertDialog(
+            onDismissRequest = {
+                explainBackground = false
+                ShareService.start(context)
+            },
+            title = { Text("Keep sharing when Magus is closed") },
+            text = {
+                Text(
+                    "On the next screen, choose \"Allow all the time\". " +
+                        "Then your family can still see you after your phone restarts."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    explainBackground = false
+                    askBackground.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    explainBackground = false
+                    ShareService.start(context)
+                }) { Text("Not now") }
+            },
+        )
+    }
+}
+
+private fun isGranted(context: Context, permission: String) =
+    ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+@Composable
+fun FamilyMap(onLocationReady: () -> Unit) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     var hasLocation by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED
+            isGranted(context, Manifest.permission.ACCESS_FINE_LOCATION) ||
+                isGranted(context, Manifest.permission.ACCESS_COARSE_LOCATION)
         )
     }
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var style by remember { mutableStateOf<Style?>(null) }
 
-    // Google's "Turn on device location?" box. Whatever they tap, the map carries on.
+    // Google's "Turn on device location?" box. Whatever they tap, carry on to the sharing steps.
     val askTurnOn = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
-    ) { }
+    ) { onLocationReady() }
 
     val askLocation = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { granted ->
         hasLocation = granted.values.any { it }
-        if (hasLocation) checkLocationIsOn(context) { askTurnOn.launch(it) }
+        if (hasLocation) checkLocationIsOn(context, { askTurnOn.launch(it) }, onLocationReady)
     }
 
-    // Runs once each time the app opens: ask for permission first, then check the phone's location switch.
+    // Runs once each time the app opens: permission first, then the phone's location switch, then sharing.
     LaunchedEffect(Unit) {
         if (!hasLocation) {
             askLocation.launch(
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             )
         } else {
-            checkLocationIsOn(context) { askTurnOn.launch(it) }
+            checkLocationIsOn(context, { askTurnOn.launch(it) }, onLocationReady)
         }
     }
 
@@ -201,20 +284,28 @@ fun FamilyMap() {
     AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
 }
 
-// Asks Google whether the phone's location is on. If it's off, hands back the box that turns it on.
-private fun checkLocationIsOn(context: Context, showTurnOnBox: (IntentSenderRequest) -> Unit) {
+// Asks Google whether the phone's location is on. If it's off, shows the box that turns it on;
+// either way, calls whenDone once that's settled.
+private fun checkLocationIsOn(
+    context: Context,
+    showTurnOnBox: (IntentSenderRequest) -> Unit,
+    whenDone: () -> Unit,
+) {
     val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10_000L).build()
     val settings = LocationSettingsRequest.Builder().addLocationRequest(request).setAlwaysShow(true).build()
     LocationServices.getSettingsClient(context)
         .checkLocationSettings(settings)
+        .addOnSuccessListener { whenDone() }
         .addOnFailureListener { e ->
             if (e is ResolvableApiException) {
                 showTurnOnBox(IntentSenderRequest.Builder(e.resolution).build())
+            } else {
+                whenDone()
             }
         }
 }
 
-// Turns on the blue dot and starts sending my location (at most once a minute while the app is open).
+// Turns on the blue dot and sends my location at most once a minute while the app is open.
 // Returns a function that stops listening for locations.
 @SuppressLint("MissingPermission") // only called after the permission check above
 private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): () -> Unit {
@@ -260,13 +351,18 @@ private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): ()
     return { engine.removeLocationUpdates(onFix) }
 }
 
-// Family members are drawn from one list of points: an orange dot each, with their name above it.
+// Family members are drawn from one list of points: a dot each (green sharing, grey paused), name above.
 private fun addFamilyLayers(style: Style) {
     style.addSource(GeoJsonSource(FAMILY_SOURCE, FeatureCollection.fromFeatures(emptyList())))
     style.addLayer(
         CircleLayer("family-dots", FAMILY_SOURCE).withProperties(
             circleRadius(9f),
-            circleColor("#F57C00"),
+            circleColor(
+                switchCase(
+                    get("sharing"), color(android.graphics.Color.parseColor(SHARING_GREEN)),
+                    color(android.graphics.Color.parseColor(PAUSED_GREY)),
+                )
+            ),
             circleStrokeColor("#FFFFFF"),
             circleStrokeWidth(3f),
         )
@@ -290,21 +386,32 @@ private fun showFamily(style: Style, members: List<Member>) {
     val features = members.map { member ->
         Feature.fromGeometry(Point.fromLngLat(member.lng, member.lat)).apply {
             addStringProperty("name", member.name)
+            addBooleanProperty("sharing", member.sharing)
         }
     }
     style.getSourceAs<GeoJsonSource>(FAMILY_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(features))
 }
 
 @Composable
-fun FamilyStrip(code: String, name: String?) {
-    Text(
-        "Family code: $code   ·   You: ${name ?: "?"}",
-        style = MaterialTheme.typography.bodySmall,
-        color = Color.White,
+fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit) {
+    val context = LocalContext.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xAA000000))
             .statusBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    )
+            .padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
+    ) {
+        Text(
+            "${Family.familyLabel(context)}  ·  code $code  ·  You: ${Family.savedName(context) ?: "?"}",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
+            modifier = Modifier.weight(1f),
+        )
+        FilledTonalButton(
+            onClick = onToggle,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+        ) { Text(if (sharing) "Sharing: ON" else "Sharing: OFF") }
+    }
 }
