@@ -131,7 +131,7 @@ object Family {
                 if (error != null) Log.w("Magus", "family listener error", error)
                 if (snapshot == null) return@addSnapshotListener
                 Log.d("Magus", "family update: " + snapshot.documents.joinToString {
-                    "${it.getString("name")}=${it.getBoolean("sharing")}"
+                    "${it.getString("name")}=${it.getBoolean("sharing")}@${it.getTimestamp("updatedAt")?.toDate()}"
                 })
                 val members = snapshot.documents.mapNotNull { doc ->
                     val lat = doc.getDouble("lat") ?: return@mapNotNull null
