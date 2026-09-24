@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Looper
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.IntentSenderRequest
@@ -27,6 +28,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -147,6 +150,16 @@ fun FamilyScreen(code: String) {
     var members by remember { mutableStateOf(emptyList<Member>()) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     var selectedUid by remember { mutableStateOf<String?>(null) }
+    var showKeepRunning by remember { mutableStateOf(false) }
+
+    // Starts background sharing. The first time, also shows how to keep the phone from closing Magus.
+    fun startSharing() {
+        ShareService.start(context)
+        if (!KeepRunning.introShown(context)) {
+            KeepRunning.markIntroShown(context)
+            showKeepRunning = true
+        }
+    }
 
     // Everyone else in the family, live. The map and the card both read this one list.
     DisposableEffect(code) {
@@ -167,12 +180,12 @@ fun FamilyScreen(code: String) {
 
     val askBackground = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { ShareService.start(context) }
+    ) { startSharing() }
 
     val askNotifications = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
-        if (isGranted(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) ShareService.start(context)
+        if (isGranted(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) startSharing()
         else explainBackground = true
     }
 
@@ -183,7 +196,7 @@ fun FamilyScreen(code: String) {
             Build.VERSION.SDK_INT >= 33 && !isGranted(context, Manifest.permission.POST_NOTIFICATIONS) ->
                 askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
             !isGranted(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) -> explainBackground = true
-            else -> ShareService.start(context)
+            else -> startSharing()
         }
     }
 
@@ -217,7 +230,13 @@ fun FamilyScreen(code: String) {
                 Family.setSharing(context, sharing)
                 if (sharing) startSharingSteps() else ShareService.stop(context)
             },
+            onKeepRunning = { showKeepRunning = true },
         )
+
+        if (showKeepRunning) {
+            BackHandler { showKeepRunning = false }
+            KeepRunningScreen(onDone = { showKeepRunning = false })
+        }
     }
 
     if (explainBackground) {
@@ -225,7 +244,7 @@ fun FamilyScreen(code: String) {
         AlertDialog(
             onDismissRequest = {
                 explainBackground = false
-                ShareService.start(context)
+                startSharing()
             },
             title = { Text("Keep sharing when Magus is closed") },
             text = {
@@ -243,7 +262,7 @@ fun FamilyScreen(code: String) {
             dismissButton = {
                 TextButton(onClick = {
                     explainBackground = false
-                    ShareService.start(context)
+                    startSharing()
                 }) { Text("Not now") }
             },
         )
@@ -541,8 +560,9 @@ private fun showFamily(style: Style, members: List<Member>, now: Long) {
 }
 
 @Composable
-fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit) {
+fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunning: () -> Unit) {
     val context = LocalContext.current
+    var menuOpen by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -561,5 +581,21 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit) {
             onClick = onToggle,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
         ) { Text(if (sharing) "Sharing: ON" else "Sharing: OFF") }
+
+        // ⋮ menu: settings that aren't needed every day.
+        Box {
+            TextButton(onClick = { menuOpen = true }) {
+                Text("⋮", color = Color.White, style = MaterialTheme.typography.titleLarge)
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text("Keep Magus running") },
+                    onClick = {
+                        menuOpen = false
+                        onKeepRunning()
+                    },
+                )
+            }
+        }
     }
 }
