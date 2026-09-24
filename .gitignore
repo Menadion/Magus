@@ -8,3 +8,6 @@ local.properties
 captures/
 # Firebase config for this project; keep it out of any public repo
 app/google-services.json
+
+# Release signing: path + password to the key outside the repo
+keystore.properties
