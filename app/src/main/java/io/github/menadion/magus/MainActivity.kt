@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.RectF
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +15,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,10 +56,13 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.delay
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.LocationComponentOptions
+import org.maplibre.android.location.OnLocationCameraTransitionListener
 import org.maplibre.android.location.engine.LocationEngineCallback
 import org.maplibre.android.location.engine.LocationEngineResult
 import org.maplibre.android.location.modes.CameraMode
@@ -64,6 +72,8 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression.color
 import org.maplibre.android.style.expressions.Expression.get
+import org.maplibre.android.style.expressions.Expression.match
+import org.maplibre.android.style.expressions.Expression.stop
 import org.maplibre.android.style.expressions.Expression.switchCase
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.PropertyFactory.circleColor
@@ -95,10 +105,16 @@ private val PHILIPPINES = LatLng(12.3, 122.5)
 private const val SEND_EVERY_MS = 60_000L
 
 private const val FAMILY_SOURCE = "family"
+private const val ME_SOURCE = "me"
 
 // Dot colours: sharing right now, or switched off.
 private const val SHARING_GREEN = "#2E7D32"
 private const val PAUSED_GREY = "#9E9E9E"
+// My own dot: blue while sharing, the same grey as everyone else when paused.
+private const val ME_BLUE = "#1A73E8"
+
+// How far from a dot a tap still counts, so small dots are easy to hit.
+private const val TAP_REACH_DP = 24f
 
 // First open asks for a name and a family, then the map shows everyone in it.
 class MainActivity : ComponentActivity() {
@@ -128,6 +144,27 @@ fun FamilyScreen(code: String) {
     var sharing by remember { mutableStateOf(Family.isSharing(context)) }
     var explainBackground by remember { mutableStateOf(false) }
 
+    var members by remember { mutableStateOf(emptyList<Member>()) }
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    var selectedUid by remember { mutableStateOf<String?>(null) }
+
+    // Everyone else in the family, live. The map and the card both read this one list.
+    DisposableEffect(code) {
+        val registration = Family.listen(context) { list ->
+            val me = FirebaseAuth.getInstance().currentUser?.uid
+            members = list.filter { it.uid != me }
+        }
+        onDispose { registration?.remove() }
+    }
+
+    // Recheck every 30 seconds, so a dot goes hollow even when no new update arrives.
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(30_000)
+        }
+    }
+
     val askBackground = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { ShareService.start(context) }
@@ -151,7 +188,27 @@ fun FamilyScreen(code: String) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        FamilyMap(onLocationReady = { startSharingSteps() })
+        FamilyMap(
+            members = members,
+            now = now,
+            sharing = sharing,
+            onLocationReady = { startSharingSteps() },
+            onDotTapped = { uid -> selectedUid = uid },
+        )
+
+        // The card keeps showing the last tapped person while it slides away.
+        val selected = members.find { it.uid == selectedUid }
+        var shown by remember { mutableStateOf<Member?>(null) }
+        if (selected != null) shown = selected
+        AnimatedVisibility(
+            visible = selected != null,
+            enter = slideInVertically { it },
+            exit = slideOutVertically { it },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            shown?.let { MemberCard(it, now) }
+        }
+
         FamilyStrip(
             code = code,
             sharing = sharing,
@@ -197,9 +254,16 @@ private fun isGranted(context: Context, permission: String) =
     ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
 @Composable
-fun FamilyMap(onLocationReady: () -> Unit) {
+fun FamilyMap(
+    members: List<Member>,
+    now: Long,
+    sharing: Boolean,
+    onLocationReady: () -> Unit,
+    onDotTapped: (String?) -> Unit,
+) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val currentOnDotTapped by rememberUpdatedState(onDotTapped)
 
     var hasLocation by remember {
         mutableStateOf(
@@ -243,6 +307,17 @@ fun FamilyMap(onLocationReady: () -> Unit) {
                     map = m
                     style = s
                 }
+                // A tap near a dot opens its card; a tap anywhere else closes it.
+                val reach = TAP_REACH_DP * context.resources.displayMetrics.density
+                m.addOnMapClickListener { point ->
+                    val at = m.projection.toScreenLocation(point)
+                    val hit = m.queryRenderedFeatures(
+                        RectF(at.x - reach, at.y - reach, at.x + reach, at.y + reach),
+                        "family-dots", "family-names",
+                    ).firstOrNull()
+                    currentOnDotTapped(hit?.getStringProperty("uid"))
+                    hit != null
+                }
             }
         }
     }
@@ -271,14 +346,17 @@ fun FamilyMap(onLocationReady: () -> Unit) {
         onDispose { stop?.invoke() }
     }
 
-    // Everyone else in the family, redrawn whenever anyone's location changes.
-    DisposableEffect(style) {
-        val s = style
-        val registration = if (s == null) null else Family.listen(context) { members ->
-            val me = FirebaseAuth.getInstance().currentUser?.uid
-            showFamily(s, members.filter { it.uid != me })
-        }
-        onDispose { registration?.remove() }
+    // My own dot follows my sharing switch: blue, or grey while paused.
+    LaunchedEffect(map, style, hasLocation, sharing) {
+        val s = style ?: return@LaunchedEffect
+        val component = map?.locationComponent ?: return@LaunchedEffect
+        if (!component.isLocationComponentActivated) return@LaunchedEffect
+        component.lastKnownLocation?.let { drawMe(s, it, sharing) }
+    }
+
+    // Redraw the family whenever the list changes, and on each 30-second recheck.
+    LaunchedEffect(style, members, now) {
+        style?.let { showFamily(it, members, now) }
     }
 
     AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
@@ -311,14 +389,16 @@ private fun checkLocationIsOn(
 private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): () -> Unit {
     val component = map.locationComponent
     component.activateLocationComponent(
-        LocationComponentActivationOptions.builder(context, style).build()
+        LocationComponentActivationOptions.builder(context, style)
+            .locationComponentOptions(hiddenPuck(context))
+            .build()
     )
     component.isLocationComponentEnabled = true
     component.renderMode = RenderMode.NORMAL
-    component.cameraMode = CameraMode.TRACKING
 
     var lastSent = 0L
     fun maybeSend(location: Location) {
+        drawMe(style, location, Family.isSharing(context))
         val now = SystemClock.elapsedRealtime()
         if (lastSent == 0L || now - lastSent >= SEND_EVERY_MS) {
             lastSent = now
@@ -327,12 +407,20 @@ private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): ()
     }
 
     // Zoom in only once a real location arrives. With location off, the map stays on the whole country.
+    // A zoom asked for while the camera is still moving onto me gets ignored, so wait for it to arrive.
     var zoomed = false
-    component.lastKnownLocation?.let {
-        zoomed = true
-        component.zoomWhileTracking(15.0)
-        maybeSend(it)
-    }
+    val known = component.lastKnownLocation
+    component.setCameraMode(CameraMode.TRACKING, object : OnLocationCameraTransitionListener {
+        override fun onLocationCameraTransitionFinished(cameraMode: Int) {
+            if (known != null && !zoomed) {
+                zoomed = true
+                component.zoomWhileTracking(15.0)
+            }
+        }
+
+        override fun onLocationCameraTransitionCanceled(cameraMode: Int) {}
+    })
+    known?.let { maybeSend(it) }
 
     val engine = component.locationEngine ?: return {}
     val onFix = object : LocationEngineCallback<LocationEngineResult> {
@@ -351,19 +439,49 @@ private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): ()
     return { engine.removeLocationUpdates(onFix) }
 }
 
-// Family members are drawn from one list of points: a dot each (green sharing, grey paused), name above.
+// The library's own dot stays on, because the map follows it, but it's invisible: it only takes its colour
+// once, so it can't turn grey when sharing is paused. My dot is drawn by drawMe instead.
+private fun hiddenPuck(context: Context): LocationComponentOptions {
+    val clear = android.graphics.Color.TRANSPARENT
+    return LocationComponentOptions.builder(context)
+        .foregroundTintColor(clear)
+        .backgroundTintColor(clear)
+        .foregroundStaleTintColor(clear)
+        .backgroundStaleTintColor(clear)
+        .bearingTintColor(clear)
+        .accuracyAlpha(0f)
+        .elevation(0f)
+        .build()
+}
+
+// My dot: blue while sharing, grey while paused, with "You" above it.
+private fun drawMe(style: Style, location: Location, sharing: Boolean) {
+    val me = Feature.fromGeometry(Point.fromLngLat(location.longitude, location.latitude)).apply {
+        addBooleanProperty("sharing", sharing)
+    }
+    style.getSourceAs<GeoJsonSource>(ME_SOURCE)?.setGeoJson(me)
+}
+
+// Family members are drawn from one list of points: a dot each, name above.
+// Green: sharing. Hollow (white, green ring): sharing but gone quiet. Grey: paused.
 private fun addFamilyLayers(style: Style) {
     style.addSource(GeoJsonSource(FAMILY_SOURCE, FeatureCollection.fromFeatures(emptyList())))
     style.addLayer(
         CircleLayer("family-dots", FAMILY_SOURCE).withProperties(
             circleRadius(9f),
             circleColor(
-                switchCase(
-                    get("sharing"), color(android.graphics.Color.parseColor(SHARING_GREEN)),
-                    color(android.graphics.Color.parseColor(PAUSED_GREY)),
+                match(
+                    get("state"), color(android.graphics.Color.parseColor(SHARING_GREEN)),
+                    stop("paused", color(android.graphics.Color.parseColor(PAUSED_GREY))),
+                    stop("quiet", color(android.graphics.Color.WHITE)),
                 )
             ),
-            circleStrokeColor("#FFFFFF"),
+            circleStrokeColor(
+                match(
+                    get("state"), color(android.graphics.Color.WHITE),
+                    stop("quiet", color(android.graphics.Color.parseColor(SHARING_GREEN))),
+                )
+            ),
             circleStrokeWidth(3f),
         )
     )
@@ -380,13 +498,43 @@ private fun addFamilyLayers(style: Style) {
             textIgnorePlacement(true),
         )
     )
+
+    // My own dot, drawn last so it sits on top: blue sharing, grey paused, "You" above.
+    style.addSource(GeoJsonSource(ME_SOURCE, FeatureCollection.fromFeatures(emptyList())))
+    style.addLayer(
+        CircleLayer("me-dot", ME_SOURCE).withProperties(
+            circleRadius(9f),
+            circleColor(
+                switchCase(
+                    get("sharing"), color(android.graphics.Color.parseColor(ME_BLUE)),
+                    color(android.graphics.Color.parseColor(PAUSED_GREY)),
+                )
+            ),
+            circleStrokeColor("#FFFFFF"),
+            circleStrokeWidth(3f),
+        )
+    )
+    style.addLayer(
+        SymbolLayer("me-name", ME_SOURCE).withProperties(
+            textField("You"),
+            textFont(arrayOf("Noto Sans Bold")),
+            textSize(14f),
+            textOffset(arrayOf(0f, -1.6f)),
+            textColor("#000000"),
+            textHaloColor("#FFFFFF"),
+            textHaloWidth(2f),
+            textAllowOverlap(true),
+            textIgnorePlacement(true),
+        )
+    )
 }
 
-private fun showFamily(style: Style, members: List<Member>) {
+private fun showFamily(style: Style, members: List<Member>, now: Long) {
     val features = members.map { member ->
         Feature.fromGeometry(Point.fromLngLat(member.lng, member.lat)).apply {
+            addStringProperty("uid", member.uid)
             addStringProperty("name", member.name)
-            addBooleanProperty("sharing", member.sharing)
+            addStringProperty("state", member.dotState(now))
         }
     }
     style.getSourceAs<GeoJsonSource>(FAMILY_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(features))
