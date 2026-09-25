@@ -22,7 +22,27 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,7 +52,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -517,63 +536,76 @@ private fun showFamily(context: Context, style: Style, members: List<Member>, no
     style.getSourceAs<GeoJsonSource>(FAMILY_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(features))
 }
 
+// The floating top card: family name, code and your name, a gear, and the Sharing pill.
+// Spec: HANDOFF.md section 3. Until the Settings screen exists, the gear opens the old menu.
 @Composable
 fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunning: () -> Unit) {
     val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
     var menuOpen by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xAA000000))
-            .statusBarsPadding()
-            .padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
-    ) {
-        Text(
-            "${Family.familyLabel(context)}  ·  code $code  ·  You: ${Family.savedName(context) ?: "?"}",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White,
-            modifier = Modifier.weight(1f),
-        )
-        FilledTonalButton(
-            onClick = onToggle,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-        ) { Text(if (sharing) "Sharing: ON" else "Sharing: OFF") }
 
-        // ⋮ menu: settings that aren't needed every day.
-        Box {
-            TextButton(onClick = { menuOpen = true }) {
-                Text("⋮", color = Color.White, style = MaterialTheme.typography.titleLarge)
+    Surface(
+        modifier = Modifier
+            .statusBarsPadding()
+            .padding(start = 12.dp, top = 12.dp, end = 12.dp)
+            .fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = colors.surfaceContainerLowest,
+        shadowElevation = 3.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 20.dp, top = 14.dp, end = 8.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(Family.familyLabel(context), style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        "Code $code \u00b7 You: ${Family.savedName(context) ?: "?"}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(48.dp)) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = colors.onSurfaceVariant,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Keep Mogar running") },
+                            onClick = {
+                                menuOpen = false
+                                onKeepRunning()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("About the map") },
+                            onClick = {
+                                menuOpen = false
+                                showAbout = true
+                            },
+                        )
+                    }
+                }
             }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text("Keep Mogar running") },
-                    onClick = {
-                        menuOpen = false
-                        onKeepRunning()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("About the map") },
-                    onClick = {
-                        menuOpen = false
-                        showAbout = true
-                    },
-                )
-            }
+            SharingPill(sharing = sharing, onToggle = onToggle, modifier = Modifier.padding(end = 12.dp))
         }
     }
 
-    // The map's credit line. OpenStreetMap's licence asks for it to be shown somewhere, so it lives here
-    // instead of as a button on the map.
+    // The map's credit line. OpenStreetMap's licence asks for it to be shown somewhere.
     if (showAbout) {
         AlertDialog(
             onDismissRequest = { showAbout = false },
             title = { Text("About the map") },
             text = {
                 Text(
-                    "Map data © OpenStreetMap contributors.\n" +
+                    "Map data \u00a9 OpenStreetMap contributors.\n" +
                         "Map tiles by OpenFreeMap.\n" +
                         "Drawn with MapLibre."
                 )
@@ -585,5 +617,75 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunn
                 }) { Text("OpenStreetMap") }
             },
         )
+    }
+}
+
+// One big pill that is the sharing switch. ON is dark (primary), OFF is light with an outline,
+// so the state reads from across a room and not only by colour.
+@Composable
+fun SharingPill(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 60.dp)
+            .toggleable(value = sharing, role = Role.Switch, onValueChange = { onToggle() }),
+        shape = CircleShape,
+        color = if (sharing) colors.primary else colors.surfaceContainerHigh,
+        contentColor = if (sharing) colors.onPrimary else colors.onSurface,
+        border = if (sharing) null else BorderStroke(2.dp, colors.outline),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            PinIcon(off = !sharing)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(if (sharing) "Sharing ON" else "Sharing OFF", style = MaterialTheme.typography.titleLarge)
+                if (!sharing) {
+                    Text(
+                        "Your family can't see you",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.error,
+                    )
+                }
+            }
+            Switch(
+                checked = sharing,
+                onCheckedChange = null, // the whole pill is the switch
+                thumbContent = if (sharing) {
+                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+                } else {
+                    null
+                },
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor = colors.onPrimary,
+                    checkedBorderColor = colors.onPrimary,
+                    checkedThumbColor = colors.primary,
+                    checkedIconColor = colors.onPrimary,
+                ),
+            )
+        }
+    }
+}
+
+// A location pin, with a slash through it when sharing is off.
+@Composable
+private fun PinIcon(off: Boolean) {
+    val slash = LocalContentColor.current
+    Box(modifier = Modifier.size(24.dp)) {
+        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(24.dp))
+        if (off) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawLine(
+                    color = slash,
+                    start = Offset(size.width * 0.15f, size.height * 0.15f),
+                    end = Offset(size.width * 0.85f, size.height * 0.85f),
+                    strokeWidth = 2.5.dp.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
+        }
     }
 }
