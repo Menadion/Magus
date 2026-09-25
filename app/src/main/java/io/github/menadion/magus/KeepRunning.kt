@@ -67,14 +67,14 @@ object KeepRunning {
     fun isUnrestricted(context: Context): Boolean =
         context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName)
 
-    // Android's "Let Magus always run in the background?" box.
+    // Android's "Let Mogar always run in the background?" box.
     @SuppressLint("BatteryLife") // the whole point of the app is to run in the background
     fun askUnrestricted(context: Context) {
         val ask = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
         if (!tryOpen(context, ask)) openAppInfo(context)
     }
 
-    // Step 2: the brand's own page, or Magus's App info page if that page doesn't exist on this phone.
+    // Step 2: the brand's own page, or Mogar's App info page if that page doesn't exist on this phone.
     fun openBrandPage(context: Context) {
         when (brand) {
             // Xiaomi's Autostart list lives in its Security app (HyperOS 2 moved it off App info).
@@ -111,7 +111,7 @@ object KeepRunning {
     }
 
     // Last step: Android removes an app's permissions if it isn't opened for a few months.
-    // Parents may never open Magus once it's set up, so this has to be off. Android 11 and up.
+    // Parents may never open Mogar once it's set up, so this has to be off. Android 11 and up.
     fun neverPaused(context: Context): Boolean =
         Build.VERSION.SDK_INT < 30 || context.packageManager.isAutoRevokeWhitelisted
 
@@ -157,16 +157,16 @@ fun KeepRunningScreen(onDone: () -> Unit) {
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Keep Magus running", style = MaterialTheme.typography.headlineMedium)
+            Text("Keep Mogar running", style = MaterialTheme.typography.headlineMedium)
             Text(
-                "Some phones close Magus to save battery. Then your family stops seeing where you are. " +
+                "Some phones close Mogar to save battery. Then your family stops seeing where you are. " +
                     "Do these steps once.",
                 style = MaterialTheme.typography.bodyLarge,
             )
 
             StepCard(
                 number = 1,
-                title = "Let Magus run in the background",
+                title = "Let Mogar run in the background",
                 // Xiaomi skips Android's box and opens its own Battery saver page instead.
                 detail = if (KeepRunning.brand == KeepRunning.Brand.XIAOMI) {
                     "Tap the button, then choose No restrictions."
@@ -187,15 +187,15 @@ fun KeepRunningScreen(onDone: () -> Unit) {
                 )
                 KeepRunning.Brand.VIVO -> BrandStep(
                     title = "Vivo: allow background use",
-                    detail = "Tap the button. Turn on Magus in the list that opens. " +
+                    detail = "Tap the button. Turn on Mogar in the list that opens. " +
                         "If you see App info instead, open Battery and allow high background power use.",
                     done = brandDone,
                     onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
                 )
                 KeepRunning.Brand.SAMSUNG -> BrandStep(
-                    title = "Samsung: don't put Magus to sleep",
+                    title = "Samsung: don't put Mogar to sleep",
                     detail = "Tap the button. Under Background usage limits, turn off " +
-                        "\"Put unused apps to sleep\". Then open Never sleeping apps and add Magus. " +
+                        "\"Put unused apps to sleep\". Then open Never sleeping apps and add Mogar. " +
                         "On an older Samsung this is under Device care, Battery, then the ⋮ menu.",
                     done = brandDone,
                     onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
@@ -206,9 +206,9 @@ fun KeepRunningScreen(onDone: () -> Unit) {
             if (Build.VERSION.SDK_INT >= 30) {
                 StepCard(
                     number = if (KeepRunning.brand == KeepRunning.Brand.OTHER) 2 else 3,
-                    title = "Don't pause Magus when unused",
+                    title = "Don't pause Mogar when unused",
                     detail = "Tap the button, then turn off \"Pause app activity if unused\". " +
-                        "Otherwise your phone stops Magus after a few months without opening it.",
+                        "Otherwise your phone stops Mogar after a few months without opening it.",
                     done = neverPaused,
                     buttonText = "Open setting",
                     onButton = { KeepRunning.openPauseSetting(context) },

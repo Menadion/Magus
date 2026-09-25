@@ -88,7 +88,7 @@ class ShareService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("Magus")
+            .setContentTitle("Mogar")
             .setContentText("Sharing your location with ${Family.familyLabel(this)}")
             .setContentIntent(openApp)
             .setOngoing(true)

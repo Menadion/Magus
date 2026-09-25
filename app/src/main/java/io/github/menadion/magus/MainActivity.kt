@@ -154,7 +154,7 @@ fun FamilyScreen(code: String) {
     var selectedUid by remember { mutableStateOf<String?>(null) }
     var showKeepRunning by remember { mutableStateOf(false) }
 
-    // Starts background sharing. The first time, also shows how to keep the phone from closing Magus.
+    // Starts background sharing. The first time, also shows how to keep the phone from closing Mogar.
     fun startSharing() {
         ShareService.start(context)
         if (!KeepRunning.introShown(context)) {
@@ -242,13 +242,13 @@ fun FamilyScreen(code: String) {
     }
 
     if (explainBackground) {
-        // "Not now" still shares, but only after Magus has been opened since the phone last restarted.
+        // "Not now" still shares, but only after Mogar has been opened since the phone last restarted.
         AlertDialog(
             onDismissRequest = {
                 explainBackground = false
                 startSharing()
             },
-            title = { Text("Keep sharing when Magus is closed") },
+            title = { Text("Keep sharing when Mogar is closed") },
             text = {
                 Text(
                     "On the next screen, choose \"Allow all the time\". " +
@@ -595,7 +595,7 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunn
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
-                    text = { Text("Keep Magus running") },
+                    text = { Text("Keep Mogar running") },
                     onClick = {
                         menuOpen = false
                         onKeepRunning()

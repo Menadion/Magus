@@ -62,8 +62,8 @@ object Family {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         db.collection("families").document(code).collection("members").document(uid)
             .set(mapOf("sharing" to on), SetOptions.merge())
-            .addOnSuccessListener { Log.d("Magus", "setSharing($on) saved") }
-            .addOnFailureListener { Log.w("Magus", "setSharing($on) failed", it) }
+            .addOnSuccessListener { Log.d("Mogar", "setSharing($on) saved") }
+            .addOnFailureListener { Log.w("Mogar", "setSharing($on) failed", it) }
     }
 
     // Signs in anonymously if this phone hasn't yet, and returns this phone's ID.
@@ -128,9 +128,9 @@ object Family {
         val code = savedCode(context) ?: return null
         return db.collection("families").document(code).collection("members")
             .addSnapshotListener { snapshot, error ->
-                if (error != null) Log.w("Magus", "family listener error", error)
+                if (error != null) Log.w("Mogar", "family listener error", error)
                 if (snapshot == null) return@addSnapshotListener
-                Log.d("Magus", "family update: " + snapshot.documents.joinToString {
+                Log.d("Mogar", "family update: " + snapshot.documents.joinToString {
                     "${it.getString("name")}=${it.getBoolean("sharing")}@${it.getTimestamp("updatedAt")?.toDate()}"
                 })
                 val members = snapshot.documents.mapNotNull { doc ->

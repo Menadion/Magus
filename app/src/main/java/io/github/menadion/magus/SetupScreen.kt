@@ -55,7 +55,7 @@ fun SetupScreen(onDone: () -> Unit) {
         modifier = Modifier.statusBarsPadding().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Magus", style = MaterialTheme.typography.headlineLarge)
+        Text("Mogar", style = MaterialTheme.typography.headlineLarge)
 
         OutlinedTextField(
             value = name,

@@ -25,7 +25,7 @@ const val LOW_BATTERY = 20
 
 private val WARNING_RED = Color(0xFFC62828)
 
-// Sharing is on, but nothing has arrived for a while: dead phone, no signal, or the phone killed Magus.
+// Sharing is on, but nothing has arrived for a while: dead phone, no signal, or the phone killed Mogar.
 fun Member.isQuiet(now: Long): Boolean =
     sharing && updatedAtMillis != null && now - updatedAtMillis > QUIET_AFTER_MS
 
