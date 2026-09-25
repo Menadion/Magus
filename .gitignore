@@ -11,3 +11,6 @@ app/google-services.json
 
 # Release signing: path + password to the key outside the repo
 keystore.properties
+
+# Screenshots for the design pass; show real locations, never public
+design/
