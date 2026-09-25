@@ -1,6 +1,8 @@
 package io.github.menadion.magus
 
 import android.Manifest
+import android.net.Uri
+import android.content.Intent
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
@@ -321,6 +323,9 @@ fun FamilyMap(
             onCreate(null)
             getMapAsync { m ->
                 m.cameraPosition = CameraPosition.Builder().target(PHILIPPINES).zoom(4.8).build()
+                m.uiSettings.isCompassEnabled = false
+                m.uiSettings.isLogoEnabled = false
+                m.uiSettings.isAttributionEnabled = false // credit lives under ⋮ > About the map
                 m.setStyle(Style.Builder().fromUri(MAP_STYLE)) { s ->
                     addFamilyLayers(s)
                     map = m
@@ -563,6 +568,7 @@ private fun showFamily(style: Style, members: List<Member>, now: Long) {
 fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunning: () -> Unit) {
     val context = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -595,7 +601,36 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunn
                         onKeepRunning()
                     },
                 )
+                DropdownMenuItem(
+                    text = { Text("About the map") },
+                    onClick = {
+                        menuOpen = false
+                        showAbout = true
+                    },
+                )
             }
         }
+    }
+
+    // The map's credit line. OpenStreetMap's licence asks for it to be shown somewhere, so it lives here
+    // instead of as a button on the map.
+    if (showAbout) {
+        AlertDialog(
+            onDismissRequest = { showAbout = false },
+            title = { Text("About the map") },
+            text = {
+                Text(
+                    "Map data © OpenStreetMap contributors.\n" +
+                        "Map tiles by OpenFreeMap.\n" +
+                        "Drawn with MapLibre."
+                )
+            },
+            confirmButton = { TextButton(onClick = { showAbout = false }) { Text("Close") } },
+            dismissButton = {
+                TextButton(onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/copyright")))
+                }) { Text("OpenStreetMap") }
+            },
+        )
     }
 }

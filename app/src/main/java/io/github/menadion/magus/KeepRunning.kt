@@ -40,14 +40,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
-// Xiaomi and Vivo kill background apps when they're swiped away, unless the phone is told not to.
-// This screen walks through telling it. Samsung and plain Android only need step 1.
+// Xiaomi, Vivo and Samsung kill background apps when they're swiped away, unless the phone is told not to.
+// This screen walks through telling it. Plain Android only needs step 1.
 object KeepRunning {
-    enum class Brand { XIAOMI, VIVO, OTHER }
+    enum class Brand { XIAOMI, VIVO, SAMSUNG, OTHER }
 
     val brand: Brand = when (Build.MANUFACTURER.lowercase()) {
         "xiaomi", "redmi", "poco" -> Brand.XIAOMI
         "vivo", "iqoo" -> Brand.VIVO
+        "samsung" -> Brand.SAMSUNG
         else -> Brand.OTHER
     }
 
@@ -94,6 +95,16 @@ object KeepRunning {
                     )
                 )
                 if (!tryOpen(context, autostart)) openAppInfo(context)
+            }
+            // Samsung's Device care battery page holds Background usage limits (sleeping apps).
+            Brand.SAMSUNG -> {
+                val battery = Intent().setComponent(
+                    ComponentName(
+                        "com.samsung.android.lool",
+                        "com.samsung.android.sm.battery.ui.BatteryActivity",
+                    )
+                )
+                if (!tryOpen(context, battery)) openAppInfo(context)
             }
             Brand.OTHER -> openAppInfo(context)
         }
@@ -178,6 +189,14 @@ fun KeepRunningScreen(onDone: () -> Unit) {
                     title = "Vivo: allow background use",
                     detail = "Tap the button. Turn on Magus in the list that opens. " +
                         "If you see App info instead, open Battery and allow high background power use.",
+                    done = brandDone,
+                    onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
+                )
+                KeepRunning.Brand.SAMSUNG -> BrandStep(
+                    title = "Samsung: don't put Magus to sleep",
+                    detail = "Tap the button. Under Background usage limits, turn off " +
+                        "\"Put unused apps to sleep\". Then open Never sleeping apps and add Magus. " +
+                        "On an older Samsung this is under Device care, Battery, then the ⋮ menu.",
                     done = brandDone,
                     onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
                 )
