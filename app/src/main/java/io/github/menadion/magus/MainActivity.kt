@@ -135,6 +135,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(this)
         Diagnostics.noteAppOpened(this)
+        ThemeSetting.load(this)
         setContent {
             MogarTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

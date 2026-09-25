@@ -87,7 +87,7 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
                 .padding(start = 20.dp, top = 10.dp, end = 20.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Box(modifier = Modifier.width(32.dp).height(4.dp).background(MogarColors.Handle, CircleShape))
+            Box(modifier = Modifier.width(32.dp).height(4.dp).background(colors.outlineVariant, CircleShape))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,

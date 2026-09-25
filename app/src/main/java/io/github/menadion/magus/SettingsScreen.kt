@@ -1,5 +1,8 @@
-package io.github.menadion.magus
+﻿package io.github.menadion.magus
 
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SegmentedButton
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -69,6 +72,29 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
+                    Group("Appearance") {
+                        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                "Theme",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
+                                color = colors.onSurfaceVariant,
+                            )
+                            val choices = listOf(
+                                ThemeSetting.SYSTEM to "Auto",
+                                ThemeSetting.LIGHT to "Light",
+                                ThemeSetting.DARK to "Dark",
+                            )
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                choices.forEachIndexed { index, (value, label) ->
+                                    SegmentedButton(
+                                        selected = ThemeSetting.mode == value,
+                                        onClick = { ThemeSetting.set(context, value) },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = choices.size),
+                                    ) { Text(label) }
+                                }
+                            }
+                        }
+                    }
                     Group("App") {
                         NavRow(
                             title = "Keep Mogar running",
@@ -164,13 +190,13 @@ fun AboutMapDialog(onClose: () -> Unit, onOpenStreetMap: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     AlertDialog(
         onDismissRequest = onClose,
-        containerColor = MogarColors.Dialog,
+        containerColor = colors.surfaceContainerHigh,
         shape = MaterialTheme.shapes.extraLarge,
         icon = { Icon(Icons.Default.Info, contentDescription = null, tint = colors.primary) },
         title = { Text("About the map", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
         text = {
             Text(
-                "Map data © OpenStreetMap contributors.\n" +
+                "Map data Â© OpenStreetMap contributors.\n" +
                     "Map tiles by OpenFreeMap.\n" +
                     "Drawn with MapLibre.",
                 style = MaterialTheme.typography.bodyLarge,

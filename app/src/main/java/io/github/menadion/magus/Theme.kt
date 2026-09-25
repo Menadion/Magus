@@ -1,12 +1,21 @@
 package io.github.menadion.magus
 
+import android.app.Activity
+import android.content.Context
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -15,19 +24,19 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 
-// Direction B, "Floating Cards". Everything here comes from design/handoff/HANDOFF.md, section 1.
+// Direction B, "Floating Cards". The light colours come from design/handoff/HANDOFF.md, section 1;
+// the dark ones are the same palette turned over for a dark background.
 
-// Colours that are Mogar's own, outside Material's roles. The Material ones live in the scheme below.
+// Colours that are Mogar's own, outside Material's roles. The same in both themes.
 object MogarColors {
     val FamilyGreen = Color(0xFF26803F)   // family dots, quiet ring, done ticks
     val QuietInitial = Color(0xFF1D6B34)  // the letter inside a quiet (hollow) dot
     val Paused = Color(0xFF6E7482)        // paused dot
-    val Handle = Color(0xFFB8B9C3)        // bottom sheet drag handle
-    val Dialog = Color(0xFFF0F0F7)        // About dialog
 }
 
-private val MogarScheme = lightColorScheme(
+private val LightScheme = lightColorScheme(
     primary = Color(0xFF2F55C4),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFDCE2FF),
@@ -39,12 +48,50 @@ private val MogarScheme = lightColorScheme(
     onSurfaceVariant = Color(0xFF45464F),
     surfaceContainerLowest = Color(0xFFFFFFFF), // floating cards, rows, tiles
     surfaceContainerLow = Color(0xFFF4F3FA),    // member card, family list sheet
-    surfaceContainerHigh = Color(0xFFECEDF4),   // done step cards, Sharing OFF pill, dividers
+    surfaceContainerHigh = Color(0xFFECEDF4),   // done step cards, dialogs, dividers
     outline = Color(0xFF767680),
     outlineVariant = Color(0xFFC6C6D0),
     error = Color(0xFFBA1A1A),
     scrim = Color(0xFF000000),
 )
+
+private val DarkScheme = darkColorScheme(
+    primary = Color(0xFFB4C5FF),
+    onPrimary = Color(0xFF0A1F5C),
+    primaryContainer = Color(0xFF243F8F),
+    onPrimaryContainer = Color(0xFFDCE2FF),
+    surface = Color(0xFF121318),
+    background = Color(0xFF121318),
+    onSurface = Color(0xFFE3E2E9),
+    onBackground = Color(0xFFE3E2E9),
+    onSurfaceVariant = Color(0xFFC6C6D0),
+    surfaceContainerLowest = Color(0xFF1C1D23), // floating cards, rows, tiles
+    surfaceContainerLow = Color(0xFF1F2026),    // member card, family list sheet
+    surfaceContainerHigh = Color(0xFF2B2C33),   // done step cards, dialogs, dividers
+    outline = Color(0xFF90909A),
+    outlineVariant = Color(0xFF45464F),
+    error = Color(0xFFFFB4AB),
+    scrim = Color(0xFF000000),
+)
+
+// The theme setting: follow the phone, always light, or always dark. Kept on this phone only.
+object ThemeSetting {
+    const val SYSTEM = "system"
+    const val LIGHT = "light"
+    const val DARK = "dark"
+
+    var mode by mutableStateOf(SYSTEM)
+        private set
+
+    fun load(context: Context) {
+        mode = context.getSharedPreferences("magus", Context.MODE_PRIVATE).getString("theme", SYSTEM) ?: SYSTEM
+    }
+
+    fun set(context: Context, value: String) {
+        mode = value
+        context.getSharedPreferences("magus", Context.MODE_PRIVATE).edit().putString("theme", value).apply()
+    }
+}
 
 // Figtree, bundled as one variable font so every family phone shows the same letters.
 private fun figtree(weight: FontWeight) = Font(
@@ -91,5 +138,27 @@ private val MogarShapes = Shapes(
 
 @Composable
 fun MogarTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = MogarScheme, typography = MogarTypography, shapes = MogarShapes, content = content)
+    val dark = when (ThemeSetting.mode) {
+        ThemeSetting.DARK -> true
+        ThemeSetting.LIGHT -> false
+        else -> isSystemInDarkTheme()
+    }
+
+    // The clock and battery in the status bar flip to light on a dark background.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val bars = WindowCompat.getInsetsController(window, view)
+            bars.isAppearanceLightStatusBars = !dark
+            bars.isAppearanceLightNavigationBars = !dark
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = if (dark) DarkScheme else LightScheme,
+        typography = MogarTypography,
+        shapes = MogarShapes,
+        content = content,
+    )
 }

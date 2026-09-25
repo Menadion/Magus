@@ -274,7 +274,7 @@ fun FamilyPage(
     if (confirmLeave) {
         AlertDialog(
             onDismissRequest = { if (!busy) confirmLeave = false },
-            containerColor = MogarColors.Dialog,
+            containerColor = colors.surfaceContainerHigh,
             shape = MaterialTheme.shapes.extraLarge,
             icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = colors.error) },
             title = { Text("Leave ${Family.familyLabel(context)}?", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
@@ -316,7 +316,7 @@ private fun NameDialog(
     var value by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        containerColor = MogarColors.Dialog,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.extraLarge,
         title = { Text(title, style = MaterialTheme.typography.headlineMedium) },
         text = {
