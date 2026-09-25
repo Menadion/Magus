@@ -36,10 +36,11 @@ object Markers {
     }
 
     // The id the map caches the picture under. Same inputs, same picture.
-    fun id(state: State, name: String, selected: Boolean) =
-        "marker:" + state.name + ":" + (if (selected) "sel:" else "") + name
+    fun id(state: State, name: String, selected: Boolean, you: Boolean = false) =
+        "marker:" + state.name + ":" + (if (selected) "sel:" else "") + (if (you) "you:" else "") + name
 
-    fun draw(context: Context, state: State, name: String, selected: Boolean): Bitmap {
+    // you: this is my own dot, so it keeps the white centre even while paused.
+    fun draw(context: Context, state: State, name: String, selected: Boolean, you: Boolean = false): Bitmap {
         val metrics = context.resources.displayMetrics
         val density = metrics.density
         fun dp(v: Float) = v * density
@@ -47,7 +48,8 @@ object Markers {
 
         val bold = boldFont(context)
         val letter = name.trim().take(1).uppercase()
-        val tagText = if (state == State.YOU) "You" else name
+        val tagText = if (state == State.YOU || you) "You" else name
+        val whiteCentre = state == State.YOU || you
 
         // Sizes from the handoff, in dp.
         val dotSize = when {
@@ -134,7 +136,7 @@ object Markers {
         }
 
         // Middle: a white centre for you, the first letter for everyone else.
-        if (state == State.YOU) {
+        if (whiteCentre) {
             plain.color = WHITE
             canvas.drawCircle(cx, cy, dp(6f), plain)
         } else {

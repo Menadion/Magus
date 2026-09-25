@@ -22,15 +22,20 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -184,7 +189,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     // The toggle notice fades after a moment.
     LaunchedEffect(notice) {
         if (notice != null) {
-            delay(2800)
+            delay(1500)
             notice = null
         }
     }
@@ -634,9 +639,16 @@ private fun hiddenPuck(context: Context): LocationComponentOptions {
 }
 
 // Adds the picture for one marker to the map's cache if it isn't there yet, and returns its id.
-private fun markerImage(context: Context, style: Style, state: Markers.State, name: String, selected: Boolean): String {
-    val id = Markers.id(state, name, selected)
-    if (style.getImage(id) == null) style.addImage(id, Markers.draw(context, state, name, selected))
+private fun markerImage(
+    context: Context,
+    style: Style,
+    state: Markers.State,
+    name: String,
+    selected: Boolean,
+    you: Boolean = false,
+): String {
+    val id = Markers.id(state, name, selected, you)
+    if (style.getImage(id) == null) style.addImage(id, Markers.draw(context, state, name, selected, you))
     return id
 }
 
@@ -644,7 +656,7 @@ private fun markerImage(context: Context, style: Style, state: Markers.State, na
 private fun drawMe(context: Context, style: Style, location: Location, sharing: Boolean) {
     val state = if (sharing) Markers.State.YOU else Markers.State.PAUSED
     val me = Feature.fromGeometry(Point.fromLngLat(location.longitude, location.latitude)).apply {
-        addStringProperty("icon", markerImage(context, style, state, "You", false))
+        addStringProperty("icon", markerImage(context, style, state, "You", selected = false, you = true))
     }
     style.getSourceAs<GeoJsonSource>(ME_SOURCE)?.setGeoJson(me)
 }
@@ -721,13 +733,6 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                     color = colors.onSurfaceVariant,
                 )
-                if (!sharing) {
-                    Text(
-                        "Your family can't see you",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.error,
-                    )
-                }
             }
             SharingDot(sharing = sharing, onToggle = onToggle)
             IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
@@ -742,46 +747,68 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings
     }
 }
 
-// The sharing switch as one dot beside the gear: blue with a white centre while sharing, grey when
-// off. No label; the notice in the middle of the map says what just happened. M's call, 2026-09-25.
+// The sharing switch beside the gear: a location pin in a blue circle while sharing, grey with a
+// slash through it when off. No label; the notice across the map says what just happened.
 @Composable
 fun SharingDot(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     Box(
         modifier = modifier
             .size(48.dp)
+            .clip(CircleShape)
             .toggleable(value = sharing, role = Role.Switch, onValueChange = { onToggle() })
             .semantics { contentDescription = if (sharing) "Sharing on" else "Sharing off" },
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .size(26.dp)
+                .size(36.dp)
                 .background(if (sharing) colors.primary else MogarColors.Paused, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            if (sharing) Box(modifier = Modifier.size(9.dp).background(colors.onPrimary, CircleShape))
+            Icon(
+                Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = colors.onPrimary,
+                modifier = Modifier.size(22.dp),
+            )
+            if (!sharing) {
+                val slash = colors.onPrimary
+                Canvas(modifier = Modifier.size(36.dp)) {
+                    drawLine(
+                        color = slash,
+                        start = Offset(size.width * 0.22f, size.height * 0.22f),
+                        end = Offset(size.width * 0.78f, size.height * 0.78f),
+                        strokeWidth = 2.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                    )
+                }
+            }
         }
     }
 }
 
-// The white notice in the middle of the map after a toggle, gone again after a moment.
+// The notice across the map after a toggle: a white band from edge to edge, gone after a moment.
 @Composable
 fun SharingNotice(text: String?, modifier: Modifier = Modifier) {
     var shown by remember { mutableStateOf(text) }
     if (text != null) shown = text
-    AnimatedVisibility(visible = text != null, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
+    AnimatedVisibility(
+        visible = text != null,
+        enter = fadeIn(tween(120)),
+        exit = fadeOut(tween(220)),
+        modifier = modifier,
+    ) {
         Surface(
-            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
-            shadowElevation = 6.dp,
-            modifier = Modifier.padding(horizontal = 32.dp),
+            shadowElevation = 4.dp,
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
                 shown ?: "",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.bodyMedium.fontWeight),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp),
             )
         }
     }
