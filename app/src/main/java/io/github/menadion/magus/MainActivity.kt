@@ -680,8 +680,8 @@ private fun showFamily(context: Context, style: Style, members: List<Member>, no
     style.getSourceAs<GeoJsonSource>(FAMILY_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(features))
 }
 
-// The floating top card: family name, code and your name, a gear that opens Settings, and the
-// Sharing pill. Spec: HANDOFF.md section 3.
+// The floating top card, one row: family name and code on the left, the compact Sharing pill and
+// the gear on the right. M's change from the handoff's two-row card (2026-09-25): it took too much map.
 @Composable
 fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
@@ -696,56 +696,22 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings
         color = colors.surfaceContainerLowest,
         shadowElevation = 3.dp,
     ) {
-        Column(
-            modifier = Modifier.padding(start = 20.dp, top = 14.dp, end = 8.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(Family.familyLabel(context), style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        "Code $code \u00b7 You: ${Family.savedName(context) ?: "?"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurfaceVariant,
-                    )
-                }
-                IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(26.dp),
-                    )
-                }
-            }
-            SharingPill(sharing = sharing, onToggle = onToggle, modifier = Modifier.padding(end = 12.dp))
-        }
-    }
-}
-
-// One big pill that is the sharing switch. ON is dark (primary), OFF is light with an outline,
-// so the state reads from across a room and not only by colour.
-@Composable
-fun SharingPill(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 60.dp)
-            .toggleable(value = sharing, role = Role.Switch, onValueChange = { onToggle() }),
-        shape = CircleShape,
-        color = if (sharing) colors.primary else colors.surfaceContainerHigh,
-        contentColor = if (sharing) colors.onPrimary else colors.onSurface,
-        border = if (sharing) null else BorderStroke(2.dp, colors.outline),
-    ) {
         Row(
-            modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 20.dp, top = 10.dp, end = 8.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PinIcon(off = !sharing)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(if (sharing) "Sharing ON" else "Sharing OFF", style = MaterialTheme.typography.titleLarge)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    Family.familyLabel(context),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                )
+                Text(
+                    "Code $code",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
+                    color = colors.onSurfaceVariant,
+                )
                 if (!sharing) {
                     Text(
                         "Your family can't see you",
@@ -754,6 +720,40 @@ fun SharingPill(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Mod
                     )
                 }
             }
+            SharingPill(sharing = sharing, onToggle = onToggle)
+            IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+        }
+    }
+}
+
+// The sharing switch as a compact pill: pin, ON or OFF, and the switch. ON is dark (primary), OFF is
+// light with an outline, so the state still reads at a glance and not only by colour.
+@Composable
+fun SharingPill(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier
+            .heightIn(min = 44.dp)
+            .toggleable(value = sharing, role = Role.Switch, onValueChange = { onToggle() }),
+        shape = CircleShape,
+        color = if (sharing) colors.primary else colors.surfaceContainerHigh,
+        contentColor = if (sharing) colors.onPrimary else colors.onSurface,
+        border = if (sharing) null else BorderStroke(2.dp, colors.outline),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            PinIcon(off = !sharing)
+            Text(if (sharing) "ON" else "OFF", style = MaterialTheme.typography.titleSmall)
             Switch(
                 checked = sharing,
                 onCheckedChange = null, // the whole pill is the switch
