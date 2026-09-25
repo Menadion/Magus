@@ -21,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -60,6 +61,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -67,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -83,7 +86,9 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.location.LocationComponentOptions
 import org.maplibre.android.location.OnLocationCameraTransitionListener
@@ -117,6 +122,9 @@ private const val SEND_EVERY_MS = 60_000L
 
 private const val FAMILY_SOURCE = "family"
 private const val ME_SOURCE = "me"
+
+// Flying to a person zooms in one level from wherever the map is, but never less than this.
+private const val STREET_ZOOM = 15.0
 
 // How far from a dot a tap still counts, so small dots are easy to hit.
 private const val TAP_REACH_DP = 24f
@@ -153,6 +161,12 @@ fun FamilyScreen(code: String) {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     var selectedUid by remember { mutableStateOf<String?>(null) }
     var showKeepRunning by remember { mutableStateOf(false) }
+    var me by remember { mutableStateOf<Member?>(null) }
+    var showList by remember { mutableStateOf(false) }
+    // Heights of the floating cards, so the camera can aim at the gap between them.
+    var topHeight by remember { mutableIntStateOf(0) }
+    var bottomHeight by remember { mutableIntStateOf(0) }
+    val myUid = FirebaseAuth.getInstance().currentUser?.uid
 
     // Starts background sharing. The first time, also shows how to keep the phone from closing Mogar.
     fun startSharing() {
@@ -166,8 +180,8 @@ fun FamilyScreen(code: String) {
     // Everyone else in the family, live. The map and the card both read this one list.
     DisposableEffect(code) {
         val registration = Family.listen(context) { list ->
-            val me = FirebaseAuth.getInstance().currentUser?.uid
-            members = list.filter { it.uid != me }
+            members = list.filter { it.uid != myUid }
+            me = list.find { it.uid == myUid }
         }
         onDispose { registration?.remove() }
     }
@@ -202,39 +216,100 @@ fun FamilyScreen(code: String) {
         }
     }
 
+    // Everyone on the screens: you first, then the family in a fixed order.
+    val meNow = (me ?: Member(
+        uid = myUid ?: "me",
+        name = Family.savedName(context) ?: "You",
+        lat = 0.0,
+        lng = 0.0,
+        battery = null,
+        updatedAtMillis = null,
+        sharing = sharing,
+    )).copy(sharing = sharing)
+    val people = listOf(Person(meNow, isYou = true)) +
+        members.sortedBy { it.name.lowercase() }.map { Person(it, isYou = false) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         FamilyMap(
             members = members,
+            me = me,
             now = now,
             sharing = sharing,
             selectedUid = selectedUid,
+            paddingTop = topHeight,
+            paddingBottom = bottomHeight,
             onLocationReady = { startSharingSteps() },
             onDotTapped = { uid -> selectedUid = uid },
         )
 
-        // The card keeps showing the last tapped person while it slides away.
-        val selected = members.find { it.uid == selectedUid }
-        var shown by remember { mutableStateOf<Member?>(null) }
+        // Bottom: the family row while nobody is picked, the person's card while someone is.
+        // The card keeps showing the last picked person while it slides away.
+        val selected = people.find { it.uid == selectedUid }
+        var shown by remember { mutableStateOf<Person?>(null) }
         if (selected != null) shown = selected
         AnimatedVisibility(
-            visible = selected != null,
-            enter = slideInVertically { it },
-            exit = slideOutVertically { it },
+            visible = selected == null,
+            enter = slideInVertically(tween(250)) { it },
+            exit = slideOutVertically(tween(250)) { it },
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
-            shown?.let { MemberCard(it, now) }
+            FamilyRow(
+                people = people,
+                now = now,
+                onPick = { selectedUid = it },
+                onSeeAll = { showList = true },
+                modifier = Modifier.onSizeChanged { bottomHeight = it.height },
+            )
+        }
+        AnimatedVisibility(
+            visible = selected != null,
+            enter = slideInVertically(tween(320)) { it },
+            exit = slideOutVertically(tween(320)) { it },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            shown?.let {
+                MemberCard(
+                    person = it,
+                    now = now,
+                    onClose = { selectedUid = null },
+                    modifier = Modifier.onSizeChanged { size -> bottomHeight = size.height },
+                )
+            }
         }
 
-        FamilyStrip(
-            code = code,
-            sharing = sharing,
-            onToggle = {
-                sharing = !sharing
-                Family.setSharing(context, sharing)
-                if (sharing) startSharingSteps() else ShareService.stop(context)
-            },
-            onKeepRunning = { showKeepRunning = true },
-        )
+        // Top: the family card, and Show everyone under it while someone is picked.
+        Column(modifier = Modifier.align(Alignment.TopCenter)) {
+            Box(modifier = Modifier.onSizeChanged { topHeight = it.height }) {
+                FamilyStrip(
+                    code = code,
+                    sharing = sharing,
+                    onToggle = {
+                        sharing = !sharing
+                        Family.setSharing(context, sharing)
+                        if (sharing) startSharingSteps() else ShareService.stop(context)
+                    },
+                    onKeepRunning = { showKeepRunning = true },
+                )
+            }
+            AnimatedVisibility(visible = selected != null) {
+                ShowEveryoneButton(
+                    onClick = { selectedUid = null },
+                    modifier = Modifier.padding(start = 12.dp, top = 12.dp),
+                )
+            }
+        }
+
+        if (showList) {
+            FamilyListSheet(
+                people = people,
+                now = now,
+                onPick = {
+                    showList = false
+                    selectedUid = it
+                },
+                onClose = { showList = false },
+            )
+        }
 
         if (showKeepRunning) {
             BackHandler { showKeepRunning = false }
@@ -278,9 +353,12 @@ private fun isGranted(context: Context, permission: String) =
 @Composable
 fun FamilyMap(
     members: List<Member>,
+    me: Member?,
     now: Long,
     sharing: Boolean,
     selectedUid: String?,
+    paddingTop: Int,
+    paddingBottom: Int,
     onLocationReady: () -> Unit,
     onDotTapped: (String?) -> Unit,
 ) {
@@ -296,6 +374,7 @@ fun FamilyMap(
     }
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var style by remember { mutableStateOf<Style?>(null) }
+    var myLocation by remember { mutableStateOf<Location?>(null) }
 
     // Google's "Turn on device location?" box. Whatever they tap, carry on to the sharing steps.
     val askTurnOn = rememberLauncherForActivityResult(
@@ -368,7 +447,7 @@ fun FamilyMap(
     DisposableEffect(map, style, hasLocation) {
         val m = map
         val s = style
-        val stop = if (m != null && s != null && hasLocation) showMyLocation(context, m, s) else null
+        val stop = if (m != null && s != null && hasLocation) showMyLocation(context, m, s) { myLocation = it } else null
         onDispose { stop?.invoke() }
     }
 
@@ -383,6 +462,59 @@ fun FamilyMap(
     // Redraw the family whenever the list changes, and on each 30-second recheck.
     LaunchedEffect(style, members, now, selectedUid) {
         style?.let { showFamily(context, it, members, now, selectedUid) }
+    }
+
+    // Picking a person flies the camera to them, aimed at the gap between the top card and the
+    // member card. Leaving focus zooms back out to fit everyone. Spec: HANDOFF.md section 4.
+    var wasFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(map, selectedUid) {
+        val m = map ?: return@LaunchedEffect
+        val myUid = FirebaseAuth.getInstance().currentUser?.uid
+        val mine = myLocation?.let { LatLng(it.latitude, it.longitude) } ?: me?.let { LatLng(it.lat, it.lng) }
+        val density = context.resources.displayMetrics.density
+        val side = (12 * density).toInt()
+        val tagRoom = (60 * density).toInt() // the name tag sits above the dot
+        if (selectedUid != null) {
+            val target = if (selectedUid == myUid) mine else members.find { it.uid == selectedUid }?.let { LatLng(it.lat, it.lng) }
+            if (target == null) return@LaunchedEffect
+            // The map stops following my phone once a person is picked.
+            if (m.locationComponent.isLocationComponentActivated) m.locationComponent.cameraMode = CameraMode.NONE
+            m.cancelTransitions()
+            val zoom = maxOf(m.cameraPosition.zoom + 1, STREET_ZOOM)
+            m.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(target)
+                        .zoom(zoom)
+                        .padding(0.0, (paddingTop + tagRoom).toDouble(), 0.0, paddingBottom.toDouble())
+                        .build()
+                ),
+                700,
+            )
+            wasFocused = true
+        } else if (wasFocused) {
+            wasFocused = false
+            val points = members.map { LatLng(it.lat, it.lng) } + listOfNotNull(mine)
+            when {
+                points.size >= 2 -> m.animateCamera(
+                    CameraUpdateFactory.newLatLngBounds(
+                        LatLngBounds.Builder().includes(points).build(),
+                        side + tagRoom, paddingTop + tagRoom, side + tagRoom, paddingBottom + side,
+                    ),
+                    700,
+                )
+                points.size == 1 -> m.animateCamera(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.Builder()
+                            .target(points[0])
+                            .zoom(STREET_ZOOM)
+                            .padding(0.0, paddingTop.toDouble(), 0.0, paddingBottom.toDouble())
+                            .build()
+                    ),
+                    700,
+                )
+            }
+        }
     }
 
     AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
@@ -412,7 +544,7 @@ private fun checkLocationIsOn(
 // Turns on the blue dot and sends my location at most once a minute while the app is open.
 // Returns a function that stops listening for locations.
 @SuppressLint("MissingPermission") // only called after the permission check above
-private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): () -> Unit {
+private fun showMyLocation(context: Context, map: MapLibreMap, style: Style, onLocation: (Location) -> Unit): () -> Unit {
     val component = map.locationComponent
     component.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)
@@ -424,6 +556,7 @@ private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): ()
 
     var lastSent = 0L
     fun maybeSend(location: Location) {
+        onLocation(location)
         drawMe(context, style, location, Family.isSharing(context))
         val now = SystemClock.elapsedRealtime()
         if (lastSent == 0L || now - lastSent >= SEND_EVERY_MS) {
@@ -686,6 +819,32 @@ private fun PinIcon(off: Boolean) {
                     cap = StrokeCap.Round,
                 )
             }
+        }
+    }
+}
+
+// The white pill under the top card while someone is picked. Spec: HANDOFF.md section 4, step 6.
+@Composable
+fun ShowEveryoneButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = CircleShape,
+        color = colors.surfaceContainerLowest,
+        shadowElevation = 3.dp,
+    ) {
+        Row(
+            modifier = Modifier.heightIn(min = 48.dp).padding(start = 14.dp, end = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ExpandGlyph(colors.primary)
+            Text(
+                "Show everyone",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.labelLarge.fontWeight),
+                color = colors.primary,
+            )
         }
     }
 }
