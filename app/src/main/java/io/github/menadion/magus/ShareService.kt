@@ -32,6 +32,11 @@ private const val NOTIFICATION_ID = 1
 // Keeps sending my location in the background. Android only allows this with a permanent notification,
 // which doubles as the reminder that sharing is on.
 class ShareService : Service() {
+    // The notification's words follow the language switch too.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageSetting.wrap(newBase))
+    }
+
     private lateinit var client: FusedLocationProviderClient
     private var listening = false
 

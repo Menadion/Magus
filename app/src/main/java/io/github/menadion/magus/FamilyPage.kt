@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.booleanResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.items
@@ -209,11 +210,15 @@ fun FamilyPage(
                         modifier = Modifier.padding(start = 20.dp, end = 16.dp, bottom = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        FilledTonalButton(onClick = { editMyName = true }, enabled = !busy) { Text(stringResource(R.string.change_name)) }
+                        // Equal widths, so a longer language (Filipino) wraps both the same way.
+                        FilledTonalButton(onClick = { editMyName = true }, enabled = !busy, modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.change_name), textAlign = TextAlign.Center)
+                        }
                         FilledTonalButton(
                             onClick = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                             enabled = !busy,
-                        ) { Text(stringResource(R.string.change_picture)) }
+                            modifier = Modifier.weight(1f),
+                        ) { Text(stringResource(R.string.change_picture), textAlign = TextAlign.Center) }
                     }
                     if (myPhoto != null) {
                         TextButton(
@@ -243,7 +248,7 @@ fun FamilyPage(
         NameDialog(
             title = stringResource(R.string.family_name),
             initial = familyName,
-            suffix = stringResource(R.string.family),
+            familyWord = stringResource(R.string.family),
             busy = busy,
             onDismiss = { editFamilyName = false },
             onSave = { newName ->
@@ -312,9 +317,10 @@ private fun NameDialog(
     busy: Boolean,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
-    suffix: String? = null,
+    familyWord: String? = null, // "Family", shown on the side of the field its language puts it
 ) {
     var value by remember { mutableStateOf(initial) }
+    val wordFirst = booleanResource(R.bool.family_word_first)
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -325,7 +331,8 @@ private fun NameDialog(
                 value = value,
                 onValueChange = { value = it },
                 singleLine = true,
-                suffix = suffix?.let { { Text(it) } },
+                prefix = if (wordFirst) familyWord?.let { { Text("$it ") } } else null,
+                suffix = if (wordFirst) null else familyWord?.let { { Text(it) } },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             )

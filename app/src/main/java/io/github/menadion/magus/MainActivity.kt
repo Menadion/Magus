@@ -4,6 +4,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import android.Manifest
+import android.app.Activity
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
@@ -14,6 +15,7 @@ import android.os.Bundle
 import android.os.Looper
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -67,6 +69,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -136,8 +139,14 @@ private const val TAP_REACH_DP = 24f
 
 // First open asks for a name and a family, then the map shows everyone in it.
 class MainActivity : ComponentActivity() {
+    // The language switch: every string this screen reads comes through the wrapped context.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageSetting.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         MapLibre.getInstance(this)
         Diagnostics.noteAppOpened(this)
         ThemeSetting.load(this)
@@ -169,7 +178,9 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     var selectedUid by remember { mutableStateOf<String?>(null) }
     var showKeepRunning by remember { mutableStateOf(false) }
-    var showSettings by remember { mutableStateOf(false) }
+    var showSettings by rememberSaveable {
+        mutableStateOf((context as? Activity)?.intent?.getBooleanExtra(LanguageSetting.OPEN_SETTINGS, false) ?: false)
+    }
     var showFamilyPage by remember { mutableStateOf(false) }
     var familyName by remember { mutableStateOf(Family.savedFamilyName(context)) }
     var familyCreator by remember { mutableStateOf<String?>(null) }

@@ -4,6 +4,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SegmentedButton
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -79,27 +80,28 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     Group(stringResource(R.string.appearance)) {
-                        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(
-                                stringResource(R.string.theme),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
-                                color = colors.onSurfaceVariant,
-                            )
-                            val choices = listOf(
+                        ChoiceRow(
+                            label = stringResource(R.string.theme),
+                            choices = listOf(
                                 ThemeSetting.SYSTEM to stringResource(R.string.theme_auto),
                                 ThemeSetting.LIGHT to stringResource(R.string.theme_light),
                                 ThemeSetting.DARK to stringResource(R.string.theme_dark),
-                            )
-                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                                choices.forEachIndexed { index, (value, label) ->
-                                    SegmentedButton(
-                                        selected = ThemeSetting.mode == value,
-                                        onClick = { ThemeSetting.set(context, value) },
-                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = choices.size),
-                                    ) { Text(label) }
-                                }
-                            }
-                        }
+                            ),
+                            selected = ThemeSetting.mode,
+                            onPick = { ThemeSetting.set(context, it) },
+                        )
+                        Divider()
+                        // Picking a language recreates the screen, so it redraws in that language at once.
+                        ChoiceRow(
+                            label = stringResource(R.string.language),
+                            choices = listOf(
+                                LanguageSetting.SYSTEM to stringResource(R.string.language_auto),
+                                LanguageSetting.ENGLISH to stringResource(R.string.language_english),
+                                LanguageSetting.FILIPINO to stringResource(R.string.language_filipino),
+                            ),
+                            selected = LanguageSetting.mode,
+                            onPick = { LanguageSetting.set(context as Activity, it) },
+                        )
                     }
                     Group(stringResource(R.string.app)) {
                         NavRow(
@@ -173,6 +175,28 @@ fun UpdateRow() {
                 onClick = { Updates.open(context, newer) },
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, bottom = 14.dp),
             ) { Text(stringResource(R.string.update_download, newer.version)) }
+        }
+    }
+}
+
+// A label over a row of segmented buttons, one of which is selected: the Theme and Language rows.
+@Composable
+private fun ChoiceRow(label: String, choices: List<Pair<String, String>>, selected: String, onPick: (String) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
+            color = colors.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            choices.forEachIndexed { index, (value, text) ->
+                SegmentedButton(
+                    selected = selected == value,
+                    onClick = { onPick(value) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = choices.size),
+                ) { Text(text) }
+            }
         }
     }
 }

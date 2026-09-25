@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.booleanResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -123,7 +124,8 @@ fun SetupScreen(onDone: () -> Unit) {
                         value = familyName,
                         onValueChange = { familyName = it },
                         label = { Text(stringResource(R.string.family_name)) },
-                        suffix = { Text(stringResource(R.string.family)) },
+                        prefix = if (booleanResource(R.bool.family_word_first)) { { Text(stringResource(R.string.family) + " ") } } else null,
+                        suffix = if (booleanResource(R.bool.family_word_first)) null else { { Text(stringResource(R.string.family)) } },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),

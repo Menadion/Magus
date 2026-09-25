@@ -6,6 +6,8 @@
     <string name="family">Family</string>
     <string name="family_label_named">%1$s Family</string>
     <string name="family_label_yours">your Family</string>
+    <!-- Whether "Family" goes before the name ("Pamilya Santos") or after ("Santos Family"). -->
+    <bool name="family_word_first">false</bool>
     <string name="back_to_map">Back to map</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
@@ -66,6 +68,11 @@
     <string name="theme_auto">Auto</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="language">Language</string>
+    <string name="language_auto">Auto</string>
+    <!-- Each language's own name, the same in every translation. -->
+    <string name="language_english">English</string>
+    <string name="language_filipino">Filipino</string>
     <string name="app">App</string>
     <string name="keep_running">Keep Mogar running</string>
     <string name="keep_running_subtitle">Stop your phone from closing Mogar</string>

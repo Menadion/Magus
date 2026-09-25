@@ -1,0 +1,145 @@
+<resources>
+    <!-- Filipino. Plain register, no "po". The phone's own setting names (Autostart, Allow,
+         Never sleeping apps) stay in English because that is what the phone's screens show. -->
+
+    <!-- Shared -->
+    <string name="you">Ikaw</string>
+    <string name="family">Pamilya</string>
+    <string name="family_label_named">Pamilya %1$s</string>
+    <string name="family_label_yours">Pamilya mo</string>
+    <bool name="family_word_first">true</bool>
+    <string name="back_to_map">Balik sa mapa</string>
+    <string name="cancel">Kanselahin</string>
+    <string name="save">I-save</string>
+    <string name="saving">Sine-save…</string>
+    <string name="close">Isara</string>
+    <string name="done">Tapos</string>
+    <string name="working">Sandali lang…</string>
+    <string name="something_wrong_connection">May nagkaproblema. Tingnan ang koneksyon mo at subukan ulit.</string>
+    <string name="something_wrong_try_again">May nagkaproblema. Subukan ulit.</string>
+
+    <!-- Map screen -->
+    <string name="member_one">1 miyembro</string>
+    <string name="members_n">%1$d miyembro</string>
+    <string name="settings">Mga setting</string>
+    <string name="settings_update_available">Mga setting, may bagong Mogar</string>
+    <string name="sharing_state_on">Naka-on ang pag-share</string>
+    <string name="sharing_state_off">Naka-off ang pag-share</string>
+    <string name="sharing_notice_on">Nakikita ng pamilya mo kung nasaan ka</string>
+    <string name="sharing_notice_off">Hindi ka makikita ng pamilya mo</string>
+    <string name="show_everyone">Ipakita ang lahat</string>
+    <string name="background_title">Patuloy na mag-share kahit nakasara ang Mogar</string>
+    <string name="background_text">Sa susunod na screen, piliin ang \"Allow all the time\". Para makita ka pa rin ng pamilya mo kahit mag-restart ang phone mo.</string>
+    <string name="continue_label">Magpatuloy</string>
+    <string name="not_now">Mamaya na</string>
+
+    <!-- Family row, See all list -->
+    <string name="see_all">Tingnan lahat</string>
+    <string name="go_to_you">Puntahan ka sa mapa</string>
+    <string name="go_to_person">Puntahan si %1$s sa mapa</string>
+    <string name="go_to_person_paused">Puntahan si %1$s sa mapa, naka-pause ang pag-share</string>
+    <string name="go_to_person_quiet">Puntahan si %1$s sa mapa, tahimik ang phone</string>
+    <string name="close_list">Isara ang listahan</string>
+    <string name="tap_name_hint">Pindutin ang pangalan para makita sila sa mapa</string>
+
+    <!-- Person's card -->
+    <string name="close_show_everyone">Isara at ipakita ang lahat</string>
+    <string name="last_seen">Huling nakita</string>
+    <string name="battery">Baterya</string>
+    <string name="just_now">ngayon lang</string>
+    <string name="min_ago">%1$d min ang nakalipas</string>
+    <string name="hr_ago">%1$d oras ang nakalipas</string>
+    <string name="yesterday_at">kahapon %1$s</string>
+
+    <!-- Status lines -->
+    <string name="sharing_on">Pag-share: ON</string>
+    <string name="sharing_off">Pag-share: OFF</string>
+    <string name="sharing">Nagse-share</string>
+    <string name="paused_sharing">Naka-pause ang pag-share</string>
+    <string name="phone_is_quiet">Tahimik ang phone</string>
+    <string name="seen_ago">Nakita %1$s</string>
+    <string name="paused_sharing_ago">Naka-pause · %1$s</string>
+    <string name="phone_quiet">Tahimik ang phone</string>
+    <string name="phone_quiet_ago">Tahimik ang phone · %1$s</string>
+
+    <!-- Settings -->
+    <string name="appearance">Itsura</string>
+    <string name="theme">Tema</string>
+    <string name="theme_auto">Awto</string>
+    <string name="theme_light">Maliwanag</string>
+    <string name="theme_dark">Madilim</string>
+    <string name="language">Wika</string>
+    <string name="language_auto">Awto</string>
+    <string name="app">App</string>
+    <string name="keep_running">Panatilihing tumatakbo ang Mogar</string>
+    <string name="keep_running_subtitle">Pigilan ang phone mo na isara ang Mogar</string>
+    <string name="about_map">Tungkol sa mapa</string>
+    <string name="about_map_subtitle">Mga kredito ng mapa</string>
+    <string name="about_map_text">Datos ng mapa © mga contributor ng OpenStreetMap.\nMga tile ng mapa mula sa OpenFreeMap.\nGinuhit gamit ang MapLibre.</string>
+    <string name="version_line">Mogar %1$s</string>
+    <string name="check_updates">Tingnan kung may update</string>
+    <string name="update_checking">Tinitingnan…</string>
+    <string name="update_out">May bagong Mogar %1$s</string>
+    <string name="update_latest">Pinakabago na ang Mogar %1$s</string>
+    <string name="update_failed">Hindi ma-check. Naka-online ka ba?</string>
+    <string name="update_tap">Pindutin para tingnan</string>
+    <string name="update_download">I-download ang Mogar %1$s</string>
+
+    <!-- Family page -->
+    <string name="change_family_name">Palitan ang pangalan ng pamilya</string>
+    <string name="copied">Nakopya</string>
+    <string name="code_hint">Pindutin ang code para kopyahin, tapos ipadala sa pamilya para makasali sila.</string>
+    <string name="members">Mga miyembro</string>
+    <string name="members_count">Mga miyembro (%1$d)</string>
+    <string name="shown_above_dot">Makikita sa ibabaw ng dot mo sa mapa</string>
+    <string name="change_name">Palitan ang pangalan</string>
+    <string name="change_picture">Palitan ang larawan</string>
+    <string name="remove_picture">Alisin ang larawan</string>
+    <string name="leave">Umalis</string>
+    <string name="leave_family">Umalis sa pamilya</string>
+    <string name="leave_family_subtitle">Hindi ka na makikita ng pamilya mo</string>
+    <string name="family_name">Pangalan ng pamilya</string>
+    <string name="your_name">Pangalan mo</string>
+    <string name="leave_family_q">Aalis sa %1$s?</string>
+    <string name="leave_family_text">Hindi ka na makikita ng pamilya mo. Puwede kang sumali ulit gamit ang code %1$s.</string>
+    <string name="leaving">Umaalis…</string>
+
+    <!-- Keep Mogar running -->
+    <string name="keep_running_intro">May mga phone na nagsasara ng Mogar para makatipid ng baterya. Kapag nangyari iyon, hindi na makikita ng pamilya mo kung nasaan ka. Gawin ang mga hakbang na ito nang isang beses.</string>
+    <string name="step_background_title">Hayaang tumakbo ang Mogar sa background</string>
+    <string name="step_background_xiaomi">Pindutin ang button, tapos piliin ang No restrictions.</string>
+    <string name="step_background_other">Pindutin ang button, tapos piliin ang Allow.</string>
+    <string name="allow">Payagan</string>
+    <string name="xiaomi_title">Xiaomi: i-on ang Autostart</string>
+    <string name="xiaomi_detail">Pindutin ang button. Sa page na bubukas, i-on ang Autostart.</string>
+    <string name="vivo_title">Vivo: payagan ang background use</string>
+    <string name="vivo_detail">Pindutin ang button. I-on ang Mogar sa listahang bubukas. Kung App info ang lumabas, buksan ang Battery at payagan ang high background power use.</string>
+    <string name="samsung_title">Samsung: huwag patulugin ang Mogar</string>
+    <string name="samsung_detail">Pindutin ang button. Sa ilalim ng Background usage limits, i-off ang \"Put unused apps to sleep\". Tapos buksan ang Never sleeping apps at idagdag ang Mogar. Sa mas lumang Samsung, nasa Device care, Battery, tapos sa ⋮ menu ito.</string>
+    <string name="pause_title">Huwag i-pause ang Mogar kapag hindi ginagamit</string>
+    <string name="pause_detail">Pindutin ang button, tapos i-off ang \"Pause app activity if unused\". Kung hindi, ititigil ng phone mo ang Mogar pagkatapos ng ilang buwang hindi nabubuksan.</string>
+    <string name="open_setting">Buksan ang setting</string>
+    <string name="open_settings">Buksan ang mga setting</string>
+    <string name="i_did_this">Ginawa ko na ito</string>
+
+    <!-- Setup -->
+    <string name="welcome">Maligayang pagdating sa Mogar</string>
+    <string name="welcome_subtitle">Makita ang buong pamilya mo sa isang mapa.</string>
+    <string name="your_family">Ang pamilya mo</string>
+    <string name="start_family">Magsimula ng bagong pamilya</string>
+    <string name="start_family_subtitle">Makakakuha ka ng code na ipapadala</string>
+    <string name="create_family">Gumawa ng pamilya</string>
+    <string name="join_family">Sumali sa pamilya</string>
+    <string name="join_family_subtitle">I-type ang 6-letrang code</string>
+    <string name="family_code">Code ng pamilya</string>
+    <string name="join_family_button">Sumali</string>
+
+    <!-- Errors from Family and Photos -->
+    <string name="no_free_code">Walang mahanap na bakanteng code ng pamilya. Subukan ulit.</string>
+    <string name="no_family_with_code">Walang pamilyang may code na %1$s.</string>
+    <string name="cant_read_picture">Hindi mabasa ang larawang iyon.</string>
+
+    <!-- Sharing service notification -->
+    <string name="channel_sharing">Pag-share ng lokasyon</string>
+    <string name="sharing_with">Nakikita ka ng %1$s</string>
+</resources>
