@@ -39,6 +39,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Only 64-bit ARM: every phone in the family. Halves the file; the emulator uses debug.
+            ndk {
+                abiFilters += "arm64-v8a"
+            }
             if (keystoreFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
