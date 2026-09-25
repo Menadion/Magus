@@ -127,7 +127,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(this)
         setContent {
-            MaterialTheme {
+            MogarTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var code by remember { mutableStateOf(Family.savedCode(this)) }
                     val familyCode = code
