@@ -75,25 +75,12 @@ import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
-import org.maplibre.android.style.expressions.Expression.color
 import org.maplibre.android.style.expressions.Expression.get
-import org.maplibre.android.style.expressions.Expression.match
-import org.maplibre.android.style.expressions.Expression.stop
-import org.maplibre.android.style.expressions.Expression.switchCase
-import org.maplibre.android.style.layers.CircleLayer
-import org.maplibre.android.style.layers.PropertyFactory.circleColor
-import org.maplibre.android.style.layers.PropertyFactory.circleRadius
-import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
-import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
-import org.maplibre.android.style.layers.PropertyFactory.textAllowOverlap
-import org.maplibre.android.style.layers.PropertyFactory.textColor
-import org.maplibre.android.style.layers.PropertyFactory.textField
-import org.maplibre.android.style.layers.PropertyFactory.textFont
-import org.maplibre.android.style.layers.PropertyFactory.textHaloColor
-import org.maplibre.android.style.layers.PropertyFactory.textHaloWidth
-import org.maplibre.android.style.layers.PropertyFactory.textIgnorePlacement
-import org.maplibre.android.style.layers.PropertyFactory.textOffset
-import org.maplibre.android.style.layers.PropertyFactory.textSize
+import org.maplibre.android.style.layers.Property.ICON_ANCHOR_CENTER
+import org.maplibre.android.style.layers.PropertyFactory.iconAllowOverlap
+import org.maplibre.android.style.layers.PropertyFactory.iconAnchor
+import org.maplibre.android.style.layers.PropertyFactory.iconIgnorePlacement
+import org.maplibre.android.style.layers.PropertyFactory.iconImage
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
@@ -111,12 +98,6 @@ private const val SEND_EVERY_MS = 60_000L
 
 private const val FAMILY_SOURCE = "family"
 private const val ME_SOURCE = "me"
-
-// Dot colours: sharing right now, or switched off.
-private const val SHARING_GREEN = "#2E7D32"
-private const val PAUSED_GREY = "#9E9E9E"
-// My own dot: blue while sharing, the same grey as everyone else when paused.
-private const val ME_BLUE = "#1A73E8"
 
 // How far from a dot a tap still counts, so small dots are easy to hit.
 private const val TAP_REACH_DP = 24f
@@ -207,6 +188,7 @@ fun FamilyScreen(code: String) {
             members = members,
             now = now,
             sharing = sharing,
+            selectedUid = selectedUid,
             onLocationReady = { startSharingSteps() },
             onDotTapped = { uid -> selectedUid = uid },
         )
@@ -279,6 +261,7 @@ fun FamilyMap(
     members: List<Member>,
     now: Long,
     sharing: Boolean,
+    selectedUid: String?,
     onLocationReady: () -> Unit,
     onDotTapped: (String?) -> Unit,
 ) {
@@ -337,7 +320,7 @@ fun FamilyMap(
                     val at = m.projection.toScreenLocation(point)
                     val hit = m.queryRenderedFeatures(
                         RectF(at.x - reach, at.y - reach, at.x + reach, at.y + reach),
-                        "family-dots", "family-names",
+                        "family-dots",
                     ).firstOrNull()
                     currentOnDotTapped(hit?.getStringProperty("uid"))
                     hit != null
@@ -375,12 +358,12 @@ fun FamilyMap(
         val s = style ?: return@LaunchedEffect
         val component = map?.locationComponent ?: return@LaunchedEffect
         if (!component.isLocationComponentActivated) return@LaunchedEffect
-        component.lastKnownLocation?.let { drawMe(s, it, sharing) }
+        component.lastKnownLocation?.let { drawMe(context, s, it, sharing) }
     }
 
     // Redraw the family whenever the list changes, and on each 30-second recheck.
-    LaunchedEffect(style, members, now) {
-        style?.let { showFamily(it, members, now) }
+    LaunchedEffect(style, members, now, selectedUid) {
+        style?.let { showFamily(context, it, members, now, selectedUid) }
     }
 
     AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
@@ -422,7 +405,7 @@ private fun showMyLocation(context: Context, map: MapLibreMap, style: Style): ()
 
     var lastSent = 0L
     fun maybeSend(location: Location) {
-        drawMe(style, location, Family.isSharing(context))
+        drawMe(context, style, location, Family.isSharing(context))
         val now = SystemClock.elapsedRealtime()
         if (lastSent == 0L || now - lastSent >= SEND_EVERY_MS) {
             lastSent = now
@@ -478,87 +461,57 @@ private fun hiddenPuck(context: Context): LocationComponentOptions {
         .build()
 }
 
-// My dot: blue while sharing, grey while paused, with "You" above it.
-private fun drawMe(style: Style, location: Location, sharing: Boolean) {
+// Adds the picture for one marker to the map's cache if it isn't there yet, and returns its id.
+private fun markerImage(context: Context, style: Style, state: Markers.State, name: String, selected: Boolean): String {
+    val id = Markers.id(state, name, selected)
+    if (style.getImage(id) == null) style.addImage(id, Markers.draw(context, state, name, selected))
+    return id
+}
+
+// My dot: primary while sharing, grey while paused, with a "You" tag above it.
+private fun drawMe(context: Context, style: Style, location: Location, sharing: Boolean) {
+    val state = if (sharing) Markers.State.YOU else Markers.State.PAUSED
     val me = Feature.fromGeometry(Point.fromLngLat(location.longitude, location.latitude)).apply {
-        addBooleanProperty("sharing", sharing)
+        addStringProperty("icon", markerImage(context, style, state, "You", false))
     }
     style.getSourceAs<GeoJsonSource>(ME_SOURCE)?.setGeoJson(me)
 }
 
-// Family members are drawn from one list of points: a dot each, name above.
-// Green: sharing. Hollow (white, green ring): sharing but gone quiet. Grey: paused.
+// Family members are drawn from one list of points, each with its own picture (see Markers).
+// Pictures keep their size at every zoom and never hide each other.
 private fun addFamilyLayers(style: Style) {
     style.addSource(GeoJsonSource(FAMILY_SOURCE, FeatureCollection.fromFeatures(emptyList())))
     style.addLayer(
-        CircleLayer("family-dots", FAMILY_SOURCE).withProperties(
-            circleRadius(9f),
-            circleColor(
-                match(
-                    get("state"), color(android.graphics.Color.parseColor(SHARING_GREEN)),
-                    stop("paused", color(android.graphics.Color.parseColor(PAUSED_GREY))),
-                    stop("quiet", color(android.graphics.Color.WHITE)),
-                )
-            ),
-            circleStrokeColor(
-                match(
-                    get("state"), color(android.graphics.Color.WHITE),
-                    stop("quiet", color(android.graphics.Color.parseColor(SHARING_GREEN))),
-                )
-            ),
-            circleStrokeWidth(3f),
-        )
-    )
-    style.addLayer(
-        SymbolLayer("family-names", FAMILY_SOURCE).withProperties(
-            textField(get("name")),
-            textFont(arrayOf("Noto Sans Bold")),
-            textSize(14f),
-            textOffset(arrayOf(0f, -1.6f)),
-            textColor("#000000"),
-            textHaloColor("#FFFFFF"),
-            textHaloWidth(2f),
-            textAllowOverlap(true),
-            textIgnorePlacement(true),
+        SymbolLayer("family-dots", FAMILY_SOURCE).withProperties(
+            iconImage(get("icon")),
+            iconAnchor(ICON_ANCHOR_CENTER),
+            iconAllowOverlap(true),
+            iconIgnorePlacement(true),
         )
     )
 
-    // My own dot, drawn last so it sits on top: blue sharing, grey paused, "You" above.
+    // My own dot, drawn last so it sits on top.
     style.addSource(GeoJsonSource(ME_SOURCE, FeatureCollection.fromFeatures(emptyList())))
     style.addLayer(
-        CircleLayer("me-dot", ME_SOURCE).withProperties(
-            circleRadius(9f),
-            circleColor(
-                switchCase(
-                    get("sharing"), color(android.graphics.Color.parseColor(ME_BLUE)),
-                    color(android.graphics.Color.parseColor(PAUSED_GREY)),
-                )
-            ),
-            circleStrokeColor("#FFFFFF"),
-            circleStrokeWidth(3f),
-        )
-    )
-    style.addLayer(
-        SymbolLayer("me-name", ME_SOURCE).withProperties(
-            textField("You"),
-            textFont(arrayOf("Noto Sans Bold")),
-            textSize(14f),
-            textOffset(arrayOf(0f, -1.6f)),
-            textColor("#000000"),
-            textHaloColor("#FFFFFF"),
-            textHaloWidth(2f),
-            textAllowOverlap(true),
-            textIgnorePlacement(true),
+        SymbolLayer("me-dot", ME_SOURCE).withProperties(
+            iconImage(get("icon")),
+            iconAnchor(ICON_ANCHOR_CENTER),
+            iconAllowOverlap(true),
+            iconIgnorePlacement(true),
         )
     )
 }
 
-private fun showFamily(style: Style, members: List<Member>, now: Long) {
+private fun showFamily(context: Context, style: Style, members: List<Member>, now: Long, selectedUid: String?) {
     val features = members.map { member ->
         Feature.fromGeometry(Point.fromLngLat(member.lng, member.lat)).apply {
             addStringProperty("uid", member.uid)
             addStringProperty("name", member.name)
             addStringProperty("state", member.dotState(now))
+            addStringProperty(
+                "icon",
+                markerImage(context, style, Markers.state(member, now), member.name, member.uid == selectedUid),
+            )
         }
     }
     style.getSourceAs<GeoJsonSource>(FAMILY_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(features))
