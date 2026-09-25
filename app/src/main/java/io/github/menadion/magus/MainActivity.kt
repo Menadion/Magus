@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
@@ -136,6 +137,7 @@ class MainActivity : ComponentActivity() {
         MapLibre.getInstance(this)
         Diagnostics.noteAppOpened(this)
         ThemeSetting.load(this)
+        Updates.load(this)
         setContent {
             MogarTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -208,6 +210,9 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             notice = null
         }
     }
+
+    // Once a day, asks GitHub whether a newer Mogar exists (the red dot on the gear).
+    LaunchedEffect(Unit) { Updates.checkDaily(context) }
 
     // Recheck every 30 seconds, so a dot goes hollow even when no new update arrives.
     LaunchedEffect(Unit) {
@@ -315,6 +320,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                         notice = if (sharing) "Your location is being shared with your family"
                         else "Your family won't be able to see you"
                     },
+                    updateAvailable = Updates.newer != null,
                     onSettings = { showSettings = true },
                     onFamily = { showFamilyPage = true },
                 )
@@ -748,6 +754,7 @@ fun FamilyStrip(
     familyName: String?,
     memberCount: Int,
     sharing: Boolean,
+    updateAvailable: Boolean,
     onToggle: () -> Unit,
     onSettings: () -> Unit,
     onFamily: () -> Unit,
@@ -797,12 +804,18 @@ fun FamilyStrip(
             )
             SharingDot(sharing = sharing, onToggle = onToggle)
             IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
-                Icon(
-                    Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = colors.onSurfaceVariant,
-                    modifier = Modifier.size(26.dp),
-                )
+                Box {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = if (updateAvailable) "Settings, a newer Mogar is out" else "Settings",
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(26.dp),
+                    )
+                    // The red dot on the gear's upper-right corner, only while a newer Mogar exists.
+                    if (updateAvailable) {
+                        UpdateDot(modifier = Modifier.align(Alignment.TopEnd).offset(x = 3.dp, y = (-3).dp))
+                    }
+                }
             }
         }
     }

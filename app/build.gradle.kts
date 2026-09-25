@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.menadion.magus"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
     }
 
     // Release signing: keystore.properties (git-ignored) points at the key outside the repo.
@@ -43,6 +43,13 @@ android {
             ndk {
                 abiFilters += "arm64-v8a"
             }
+            if (keystoreFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+        // Debug carries the same key, so a debug build can update a release one in place (the
+        // emulator keeps its family) and the other way round.
+        debug {
             if (keystoreFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }

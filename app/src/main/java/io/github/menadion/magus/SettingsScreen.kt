@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,7 +27,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,12 +41,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 // Settings, opened by the gear on the map. A full screen. Spec: HANDOFF.md section 7.
 // Settings, opened by the gear: the app's own rows, and the version at the bottom. Everything about
@@ -103,6 +108,8 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                             onClick = onKeepRunning,
                         )
                         Divider()
+                        UpdateRow()
+                        Divider()
                         NavRow(
                             title = "About the map",
                             subtitle = "Map credits",
@@ -129,6 +136,43 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/copyright")))
             },
         )
+    }
+}
+
+// Check for updates: a tap asks GitHub and the subtitle says what it found. A newer Mogar puts the
+// red dot on the row's icon and a Download button under it; the browser downloads the file and
+// Android's installer takes over from its notification. Spec: Backlog, "updates", 2026-09-25.
+@Composable
+fun UpdateRow() {
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+    val newer = Updates.newer
+    val subtitle = when {
+        Updates.state == Updates.State.CHECKING -> "Checking…"
+        newer != null -> "Mogar ${newer.version} is out" + if (newer.notes.isNotBlank()) ": ${newer.notes}" else ""
+        Updates.state == Updates.State.CHECKED -> "Mogar ${Diagnostics.appVersion(context)} is the latest"
+        Updates.state == Updates.State.FAILED -> "Couldn't check. Are you online?"
+        else -> "Tap to check"
+    }
+    Column {
+        NavRow(
+            title = "Check for updates",
+            subtitle = subtitle,
+            icon = {
+                Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, tint = colors.primary)
+                    if (newer != null) UpdateDot(modifier = Modifier.align(Alignment.TopEnd))
+                }
+            },
+            onClick = { scope.launch { Updates.check(context) } },
+        )
+        if (newer != null) {
+            Button(
+                onClick = { Updates.open(context, newer) },
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, bottom = 14.dp),
+            ) { Text("Download Mogar ${newer.version}") }
+        }
     }
 }
 
@@ -196,7 +240,7 @@ fun AboutMapDialog(onClose: () -> Unit, onOpenStreetMap: () -> Unit) {
         title = { Text("About the map", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
         text = {
             Text(
-                "Map data Â© OpenStreetMap contributors.\n" +
+                "Map data © OpenStreetMap contributors.\n" +
                     "Map tiles by OpenFreeMap.\n" +
                     "Drawn with MapLibre.",
                 style = MaterialTheme.typography.bodyLarge,
