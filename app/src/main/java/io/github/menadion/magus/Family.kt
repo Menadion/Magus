@@ -57,7 +57,9 @@ object Family {
     }
 
     // "Santos Family", or "your Family" for a family made before names existed.
-    fun familyLabel(context: Context): String = "${savedFamilyName(context) ?: "your"} Family"
+    fun familyLabel(context: Context, name: String? = savedFamilyName(context)): String =
+        if (name.isNullOrBlank()) context.getString(R.string.family_label_yours)
+        else context.getString(R.string.family_label_named, name)
 
     // Turns my sharing on or off, on this phone and for everyone else's map (green or grey dot).
     fun setSharing(context: Context, on: Boolean) {
@@ -92,7 +94,7 @@ object Family {
                 return code
             }
         }
-        error("Couldn't find a free family code. Try again.")
+        error(context.getString(R.string.no_free_code))
     }
 
     // Joins an existing family. Fails if nobody has made a family with that code.
@@ -101,7 +103,7 @@ object Family {
         val uid = myId()
         val family = db.collection("families").document(code)
         val found = family.get().await()
-        if (!found.exists()) error("No family with the code $code.")
+        if (!found.exists()) error(context.getString(R.string.no_family_with_code, code))
         family.collection("members").document(uid)
             .set(mapOf("name" to name, "sharing" to true), SetOptions.merge()).await()
         save(context, name, code, found.getString("name"))

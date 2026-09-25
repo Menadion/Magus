@@ -83,15 +83,15 @@ class ShareService : Service() {
     private fun buildNotification(): Notification {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Location sharing", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, getString(R.string.channel_sharing), NotificationManager.IMPORTANCE_LOW)
         )
         val openApp = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("Mogar")
-            .setContentText("Sharing your location with ${Family.familyLabel(this)}")
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.sharing_with, Family.familyLabel(this)))
             .setContentIntent(openApp)
             .setOngoing(true)
             .build()

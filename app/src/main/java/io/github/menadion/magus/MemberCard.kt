@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,11 +46,12 @@ fun Member.dotState(now: Long): String = when {
     else -> "active"
 }
 
-// "just now", "3 min ago", "2 hr ago", "yesterday 8:14 PM", then "Sep 22, 8:14 PM".
+// "just now", "3 min ago", "2 hr ago", "yesterday 8:14 PM", then "Sep 22, 8:14 PM". Dates stay in English.
+@Composable
 fun lastSeenText(then: Long, now: Long): String {
     val minutes = (now - then) / 60_000L
-    if (minutes < 1) return "just now"
-    if (minutes < 60) return "$minutes min ago"
+    if (minutes < 1) return stringResource(R.string.just_now)
+    if (minutes < 60) return stringResource(R.string.min_ago, minutes.toInt())
 
     val thenDay = Calendar.getInstance().apply { timeInMillis = then }
     val today = Calendar.getInstance().apply { timeInMillis = now }
@@ -59,8 +61,8 @@ fun lastSeenText(then: Long, now: Long): String {
 
     val time = SimpleDateFormat("h:mm a", Locale.ENGLISH).format(Date(then))
     return when {
-        sameDay(thenDay, today) -> "${minutes / 60} hr ago"
-        sameDay(thenDay, yesterday) -> "yesterday $time"
+        sameDay(thenDay, today) -> stringResource(R.string.hr_ago, (minutes / 60).toInt())
+        sameDay(thenDay, yesterday) -> stringResource(R.string.yesterday_at, time)
         else -> SimpleDateFormat("MMM d, h:mm a", Locale.ENGLISH).format(Date(then))
     }
 }
@@ -90,7 +92,7 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
             }
             Box(modifier = Modifier.size(48.dp).background(colors.surfaceContainerHigh, CircleShape)) {
                 IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Close and show everyone", tint = colors.onSurface)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_show_everyone), tint = colors.onSurface)
                 }
             }
         }
@@ -100,7 +102,7 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
         ) {
             val seen = person.member.updatedAtMillis?.let { lastSeenText(it, now) } ?: "—"
             Tile(
-                label = "Last seen",
+                label = stringResource(R.string.last_seen),
                 value = seen,
                 valueColor = if (quiet) colors.error else colors.onSurface,
                 icon = { ClockGlyph(colors.onSurfaceVariant) },
@@ -109,7 +111,7 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
             val battery = person.member.battery
             val low = battery != null && battery < LOW_BATTERY
             Tile(
-                label = "Battery",
+                label = stringResource(R.string.battery),
                 value = battery?.let { "$it%" } ?: "—",
                 valueColor = if (low) colors.error else colors.onSurface,
                 icon = { BatteryGlyph(if (low) colors.error else colors.onSurfaceVariant) },

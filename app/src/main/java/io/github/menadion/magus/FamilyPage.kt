@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
@@ -88,7 +89,7 @@ fun FamilyPage(
             try {
                 action()
             } catch (e: Exception) {
-                problem = e.message ?: "Something went wrong. Check your connection and try again."
+                problem = e.message ?: context.getString(R.string.something_wrong_connection)
             } finally {
                 busy = false
             }
@@ -118,9 +119,9 @@ fun FamilyPage(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to map")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back_to_map))
                 }
-                Text("Family", style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(R.string.family), style = MaterialTheme.typography.headlineMedium)
             }
 
             // The name and the code, centred like a group's header.
@@ -130,13 +131,13 @@ fun FamilyPage(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "$familyName Family".trim(),
+                        Family.familyLabel(context, familyName),
                         style = MaterialTheme.typography.headlineLarge,
                         textAlign = TextAlign.Center,
                     )
                     if (canRename) {
                         IconButton(onClick = { editFamilyName = true }, modifier = Modifier.size(40.dp)) {
-                            Icon(Icons.Default.Edit, contentDescription = "Change family name", tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.change_family_name), tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -162,7 +163,7 @@ fun FamilyPage(
                     }
                 }
                 Text(
-                    if (copied) "Copied" else "Tap the code to copy it, then send it to family so they can join.",
+                    if (copied) stringResource(R.string.copied) else stringResource(R.string.code_hint),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                     color = colors.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -176,7 +177,7 @@ fun FamilyPage(
                 // The list box is a fixed share of the screen, so You and Leave sit in the same place
                 // whether the family has one member or ten; past about four people it scrolls inside.
                 val listMax = (LocalConfiguration.current.screenHeightDp * 0.38f).dp
-                Group(if (people.size == 1) "Members" else "Members (${people.size})") {
+                Group(if (people.size == 1) stringResource(R.string.members) else stringResource(R.string.members_count, people.size)) {
                     LazyColumn(
                         modifier = Modifier.height(listMax),
                         contentPadding = PaddingValues(8.dp),
@@ -188,7 +189,7 @@ fun FamilyPage(
                     }
                 }
 
-                Group("You") {
+                Group(stringResource(R.string.you)) {
                     Row(
                         modifier = Modifier.padding(start = 20.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -198,7 +199,7 @@ fun FamilyPage(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(myName, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "Shown above your dot on the map",
+                                stringResource(R.string.shown_above_dot),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                                 color = colors.onSurfaceVariant,
                             )
@@ -208,25 +209,25 @@ fun FamilyPage(
                         modifier = Modifier.padding(start = 20.dp, end = 16.dp, bottom = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        FilledTonalButton(onClick = { editMyName = true }, enabled = !busy) { Text("Change name") }
+                        FilledTonalButton(onClick = { editMyName = true }, enabled = !busy) { Text(stringResource(R.string.change_name)) }
                         FilledTonalButton(
                             onClick = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                             enabled = !busy,
-                        ) { Text("Change picture") }
+                        ) { Text(stringResource(R.string.change_picture)) }
                     }
                     if (myPhoto != null) {
                         TextButton(
                             onClick = { attempt { Family.setPhoto(context, null) } },
                             enabled = !busy,
                             modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
-                        ) { Text("Remove picture", color = colors.error) }
+                        ) { Text(stringResource(R.string.remove_picture), color = colors.error) }
                     }
                 }
 
-                Group("Leave") {
+                Group(stringResource(R.string.leave)) {
                     NavRow(
-                        title = "Leave family",
-                        subtitle = "Your family stops seeing you",
+                        title = stringResource(R.string.leave_family),
+                        subtitle = stringResource(R.string.leave_family_subtitle),
                         icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = colors.error) },
                         iconBackground = colors.surfaceContainerHigh,
                         titleColor = colors.error,
@@ -240,9 +241,9 @@ fun FamilyPage(
 
     if (editFamilyName) {
         NameDialog(
-            title = "Family name",
+            title = stringResource(R.string.family_name),
             initial = familyName,
-            suffix = "Family",
+            suffix = stringResource(R.string.family),
             busy = busy,
             onDismiss = { editFamilyName = false },
             onSave = { newName ->
@@ -257,7 +258,7 @@ fun FamilyPage(
 
     if (editMyName) {
         NameDialog(
-            title = "Your name",
+            title = stringResource(R.string.your_name),
             initial = myName,
             busy = busy,
             onDismiss = { editMyName = false },
@@ -277,10 +278,10 @@ fun FamilyPage(
             containerColor = colors.surfaceContainerHigh,
             shape = MaterialTheme.shapes.extraLarge,
             icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = colors.error) },
-            title = { Text("Leave ${Family.familyLabel(context)}?", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
+            title = { Text(stringResource(R.string.leave_family_q, Family.familyLabel(context)), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
             text = {
                 Text(
-                    "Your family will stop seeing you. You can join again with the code $code.",
+                    stringResource(R.string.leave_family_text, code),
                     style = MaterialTheme.typography.bodyLarge,
                     color = colors.onSurfaceVariant,
                 )
@@ -296,9 +297,9 @@ fun FamilyPage(
                             onLeft()
                         }
                     },
-                ) { Text(if (busy) "Leaving…" else "Leave", color = colors.error) }
+                ) { Text(stringResource(if (busy) R.string.leaving else R.string.leave), color = colors.error) }
             },
-            dismissButton = { TextButton(enabled = !busy, onClick = { confirmLeave = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(enabled = !busy, onClick = { confirmLeave = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -331,9 +332,9 @@ private fun NameDialog(
         },
         confirmButton = {
             TextButton(enabled = !busy && value.isNotBlank() && value.trim() != initial, onClick = { onSave(value.trim()) }) {
-                Text(if (busy) "Saving…" else "Save")
+                Text(stringResource(if (busy) R.string.saving else R.string.save))
             }
         },
-        dismissButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

@@ -1,5 +1,6 @@
 ﻿package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SegmentedButton
@@ -68,26 +69,26 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to map")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back_to_map))
                     }
-                    Text("Settings", style = MaterialTheme.typography.headlineMedium)
+                    Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
                 }
 
                 Column(
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    Group("Appearance") {
+                    Group(stringResource(R.string.appearance)) {
                         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
-                                "Theme",
+                                stringResource(R.string.theme),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                                 color = colors.onSurfaceVariant,
                             )
                             val choices = listOf(
-                                ThemeSetting.SYSTEM to "Auto",
-                                ThemeSetting.LIGHT to "Light",
-                                ThemeSetting.DARK to "Dark",
+                                ThemeSetting.SYSTEM to stringResource(R.string.theme_auto),
+                                ThemeSetting.LIGHT to stringResource(R.string.theme_light),
+                                ThemeSetting.DARK to stringResource(R.string.theme_dark),
                             )
                             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                                 choices.forEachIndexed { index, (value, label) ->
@@ -100,10 +101,10 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                             }
                         }
                     }
-                    Group("App") {
+                    Group(stringResource(R.string.app)) {
                         NavRow(
-                            title = "Keep Mogar running",
-                            subtitle = "Stop your phone from closing Mogar",
+                            title = stringResource(R.string.keep_running),
+                            subtitle = stringResource(R.string.keep_running_subtitle),
                             icon = { Icon(Icons.Default.PlayArrow, contentDescription = null, tint = colors.primary) },
                             onClick = onKeepRunning,
                         )
@@ -111,8 +112,8 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                         UpdateRow()
                         Divider()
                         NavRow(
-                            title = "About the map",
-                            subtitle = "Map credits",
+                            title = stringResource(R.string.about_map),
+                            subtitle = stringResource(R.string.about_map_subtitle),
                             icon = { Icon(Icons.Default.Info, contentDescription = null, tint = colors.primary) },
                             onClick = { showAbout = true },
                         )
@@ -120,7 +121,7 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                 }
             }
             Text(
-                "Mogar ${Diagnostics.appVersion(context)}",
+                stringResource(R.string.version_line, Diagnostics.appVersion(context)),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -149,15 +150,15 @@ fun UpdateRow() {
     val scope = rememberCoroutineScope()
     val newer = Updates.newer
     val subtitle = when {
-        Updates.state == Updates.State.CHECKING -> "Checking…"
-        newer != null -> "Mogar ${newer.version} is out" + if (newer.notes.isNotBlank()) ": ${newer.notes}" else ""
-        Updates.state == Updates.State.CHECKED -> "Mogar ${Diagnostics.appVersion(context)} is the latest"
-        Updates.state == Updates.State.FAILED -> "Couldn't check. Are you online?"
-        else -> "Tap to check"
+        Updates.state == Updates.State.CHECKING -> stringResource(R.string.update_checking)
+        newer != null -> stringResource(R.string.update_out, newer.version) + if (newer.notes.isNotBlank()) ": ${newer.notes}" else ""
+        Updates.state == Updates.State.CHECKED -> stringResource(R.string.update_latest, Diagnostics.appVersion(context))
+        Updates.state == Updates.State.FAILED -> stringResource(R.string.update_failed)
+        else -> stringResource(R.string.update_tap)
     }
     Column {
         NavRow(
-            title = "Check for updates",
+            title = stringResource(R.string.check_updates),
             subtitle = subtitle,
             icon = {
                 Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
@@ -171,7 +172,7 @@ fun UpdateRow() {
             Button(
                 onClick = { Updates.open(context, newer) },
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, bottom = 14.dp),
-            ) { Text("Download Mogar ${newer.version}") }
+            ) { Text(stringResource(R.string.update_download, newer.version)) }
         }
     }
 }
@@ -237,17 +238,15 @@ fun AboutMapDialog(onClose: () -> Unit, onOpenStreetMap: () -> Unit) {
         containerColor = colors.surfaceContainerHigh,
         shape = MaterialTheme.shapes.extraLarge,
         icon = { Icon(Icons.Default.Info, contentDescription = null, tint = colors.primary) },
-        title = { Text("About the map", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
+        title = { Text(stringResource(R.string.about_map), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
         text = {
             Text(
-                "Map data © OpenStreetMap contributors.\n" +
-                    "Map tiles by OpenFreeMap.\n" +
-                    "Drawn with MapLibre.",
+                stringResource(R.string.about_map_text),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.onSurfaceVariant,
             )
         },
-        confirmButton = { TextButton(onClick = onClose) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.close)) } },
         dismissButton = { TextButton(onClick = onOpenStreetMap) { Text("OpenStreetMap") } },
     )
 }

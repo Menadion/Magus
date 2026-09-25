@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
@@ -171,13 +172,12 @@ fun KeepRunningScreen(onDone: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Keep Mogar running",
+                stringResource(R.string.keep_running),
                 style = MaterialTheme.typography.headlineLarge,
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             Text(
-                "Some phones close Mogar to save battery. Then your family stops seeing where you are. " +
-                    "Do these steps once.",
+                stringResource(R.string.keep_running_intro),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
@@ -185,37 +185,34 @@ fun KeepRunningScreen(onDone: () -> Unit) {
 
             StepCard(
                 number = 1,
-                title = "Let Mogar run in the background",
+                title = stringResource(R.string.step_background_title),
                 // Xiaomi skips Android's box and opens its own Battery saver page instead.
                 detail = if (KeepRunning.brand == KeepRunning.Brand.XIAOMI) {
-                    "Tap the button, then choose No restrictions."
+                    stringResource(R.string.step_background_xiaomi)
                 } else {
-                    "Tap the button, then choose Allow."
+                    stringResource(R.string.step_background_other)
                 },
                 done = unrestricted,
-                buttonText = "Allow",
+                buttonText = stringResource(R.string.allow),
                 onButton = { KeepRunning.askUnrestricted(context) },
             )
 
             when (KeepRunning.brand) {
                 KeepRunning.Brand.XIAOMI -> BrandStep(
-                    title = "Xiaomi: turn on Autostart",
-                    detail = "Tap the button. On the page that opens, turn on Autostart.",
+                    title = stringResource(R.string.xiaomi_title),
+                    detail = stringResource(R.string.xiaomi_detail),
                     done = brandDone,
                     onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
                 )
                 KeepRunning.Brand.VIVO -> BrandStep(
-                    title = "Vivo: allow background use",
-                    detail = "Tap the button. Turn on Mogar in the list that opens. " +
-                        "If you see App info instead, open Battery and allow high background power use.",
+                    title = stringResource(R.string.vivo_title),
+                    detail = stringResource(R.string.vivo_detail),
                     done = brandDone,
                     onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
                 )
                 KeepRunning.Brand.SAMSUNG -> BrandStep(
-                    title = "Samsung: don't put Mogar to sleep",
-                    detail = "Tap the button. Under Background usage limits, turn off " +
-                        "\"Put unused apps to sleep\". Then open Never sleeping apps and add Mogar. " +
-                        "On an older Samsung this is under Device care, Battery, then the \u22ee menu.",
+                    title = stringResource(R.string.samsung_title),
+                    detail = stringResource(R.string.samsung_detail),
                     done = brandDone,
                     onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
                 )
@@ -225,11 +222,10 @@ fun KeepRunningScreen(onDone: () -> Unit) {
             if (Build.VERSION.SDK_INT >= 30) {
                 StepCard(
                     number = if (KeepRunning.brand == KeepRunning.Brand.OTHER) 2 else 3,
-                    title = "Don't pause Mogar when unused",
-                    detail = "Tap the button, then turn off \"Pause app activity if unused\". " +
-                        "Otherwise your phone stops Mogar after a few months without opening it.",
+                    title = stringResource(R.string.pause_title),
+                    detail = stringResource(R.string.pause_detail),
                     done = neverPaused,
-                    buttonText = "Open setting",
+                    buttonText = stringResource(R.string.open_setting),
                     onButton = { KeepRunning.openPauseSetting(context) },
                 )
             }
@@ -239,7 +235,7 @@ fun KeepRunningScreen(onDone: () -> Unit) {
                 onClick = onDone,
                 shape = CircleShape,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).height(56.dp),
-            ) { Text("Done", style = MaterialTheme.typography.titleSmall) }
+            ) { Text(stringResource(R.string.done), style = MaterialTheme.typography.titleSmall) }
         }
     }
 }
@@ -252,12 +248,12 @@ private fun BrandStep(title: String, detail: String, done: Boolean, onDoneChange
         title = title,
         detail = detail,
         done = done,
-        buttonText = "Open settings",
+        buttonText = stringResource(R.string.open_settings),
         onButton = { KeepRunning.openBrandPage(context) },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 48.dp)) {
             Checkbox(checked = done, onCheckedChange = onDoneChange)
-            Text("I did this", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.i_did_this), style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
@@ -291,7 +287,7 @@ private fun StepCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     if (done) {
-                        Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.done), tint = Color.White, modifier = Modifier.size(20.dp))
                     } else {
                         Text("$number", style = MaterialTheme.typography.titleSmall, color = colors.onPrimaryContainer)
                     }

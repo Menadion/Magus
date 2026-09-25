@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.clickable
@@ -49,9 +50,9 @@ fun FamilyRow(people: List<Person>, now: Long, onPick: (String) -> Unit, onSeeAl
     ) {
         Column(modifier = Modifier.navigationBarsPadding().padding(start = 20.dp, top = 8.dp, end = 8.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Family", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.family), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                 TextButton(onClick = onSeeAll, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("See all", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.labelLarge.fontWeight))
+                    Text(stringResource(R.string.see_all), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.labelLarge.fontWeight))
                     Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
                 }
             }
@@ -69,10 +70,10 @@ private fun PersonColumn(person: Person, now: Long, onPick: () -> Unit, modifier
     val colors = MaterialTheme.colorScheme
     val state = person.state(now)
     val description = when (state) {
-        Markers.State.YOU -> "Go to you on the map"
-        Markers.State.PAUSED -> "Go to ${person.name} on the map, sharing paused"
-        Markers.State.QUIET -> "Go to ${person.name} on the map, phone quiet"
-        else -> "Go to ${person.name} on the map"
+        Markers.State.YOU -> stringResource(R.string.go_to_you)
+        Markers.State.PAUSED -> stringResource(R.string.go_to_person_paused, person.name)
+        Markers.State.QUIET -> stringResource(R.string.go_to_person_quiet, person.name)
+        else -> stringResource(R.string.go_to_person, person.name)
     }
     Column(
         modifier = modifier
@@ -110,9 +111,9 @@ fun FamilyList(people: List<Person>, now: Long, onPick: (String) -> Unit, onClos
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
-            Text("Family", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.family), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close list")
+                Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.close_list))
             }
         }
         LazyColumn(
@@ -124,7 +125,7 @@ fun FamilyList(people: List<Person>, now: Long, onPick: (String) -> Unit, onClos
             }
         }
         Text(
-            "Tap a name to see them on the map",
+            stringResource(R.string.tap_name_hint),
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,

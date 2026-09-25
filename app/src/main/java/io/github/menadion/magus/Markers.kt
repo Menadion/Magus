@@ -61,7 +61,7 @@ object Markers {
 
         val bold = boldFont(context)
         val letter = name.trim().take(1).uppercase()
-        val tagText = if (state == State.YOU || you) "You" else name
+        val tagText = if (state == State.YOU || you) context.getString(R.string.you) else name
         val whiteCentre = state == State.YOU || you
 
         // Sizes from the handoff, in dp.

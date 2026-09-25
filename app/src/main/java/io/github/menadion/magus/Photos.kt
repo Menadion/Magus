@@ -31,7 +31,7 @@ object Photos {
             val shortest = min(bounds.outWidth, bounds.outHeight)
             val options = BitmapFactory.Options().apply { inSampleSize = max(1, shortest / (SIZE * 2)) }
             context.contentResolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, options) }
-                ?: error("Couldn't read that picture.")
+                ?: error(context.getString(R.string.cant_read_picture))
         }
         val side = min(source.width, source.height)
         val square = Bitmap.createBitmap(source, (source.width - side) / 2, (source.height - side) / 2, side, side)

@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -68,7 +69,7 @@ fun SetupScreen(onDone: () -> Unit) {
                 action()
                 onDone()
             } catch (e: Exception) {
-                problem = e.message ?: "Something went wrong. Try again."
+                problem = e.message ?: context.getString(R.string.something_wrong_try_again)
             } finally {
                 busy = false
             }
@@ -89,9 +90,9 @@ fun SetupScreen(onDone: () -> Unit) {
             ) {
                 Icon(Icons.Default.LocationOn, contentDescription = null, tint = colors.primary, modifier = Modifier.size(30.dp))
             }
-            Text("Welcome to Mogar", style = MaterialTheme.typography.displaySmall, modifier = Modifier.padding(top = 16.dp))
+            Text(stringResource(R.string.welcome), style = MaterialTheme.typography.displaySmall, modifier = Modifier.padding(top = 16.dp))
             Text(
-                "See your whole family on one map.",
+                stringResource(R.string.welcome_subtitle),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = MaterialTheme.typography.bodyLarge.fontWeight),
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp),
@@ -100,20 +101,20 @@ fun SetupScreen(onDone: () -> Unit) {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Your name") },
-                supportingText = { Text("Shown above your dot on the map") },
+                label = { Text(stringResource(R.string.your_name)) },
+                supportingText = { Text(stringResource(R.string.shown_above_dot)) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
             )
 
-            Text("Your family", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 20.dp))
+            Text(stringResource(R.string.your_family), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 20.dp))
 
             Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ChoiceCard(
-                    title = "Start a new family",
-                    subtitle = "You get a code to share",
+                    title = stringResource(R.string.start_family),
+                    subtitle = stringResource(R.string.start_family_subtitle),
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
                     selected = !joining,
                     onSelect = { joining = false },
@@ -121,8 +122,8 @@ fun SetupScreen(onDone: () -> Unit) {
                     OutlinedTextField(
                         value = familyName,
                         onValueChange = { familyName = it },
-                        label = { Text("Family name") },
-                        suffix = { Text("Family") },
+                        label = { Text(stringResource(R.string.family_name)) },
+                        suffix = { Text(stringResource(R.string.family)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -133,11 +134,11 @@ fun SetupScreen(onDone: () -> Unit) {
                         enabled = !busy && name.isNotBlank() && familyName.isNotBlank(),
                         shape = CircleShape,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                    ) { Text("Create family", style = MaterialTheme.typography.titleSmall) }
+                    ) { Text(stringResource(R.string.create_family), style = MaterialTheme.typography.titleSmall) }
                 }
                 ChoiceCard(
-                    title = "Join a family",
-                    subtitle = "Type the 6-letter code",
+                    title = stringResource(R.string.join_family),
+                    subtitle = stringResource(R.string.join_family_subtitle),
                     icon = { Icon(Icons.Default.Person, contentDescription = null) },
                     selected = joining,
                     onSelect = { joining = true },
@@ -145,7 +146,7 @@ fun SetupScreen(onDone: () -> Unit) {
                     OutlinedTextField(
                         value = code,
                         onValueChange = { code = it.uppercase().take(6) },
-                        label = { Text("Family code") },
+                        label = { Text(stringResource(R.string.family_code)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
@@ -156,11 +157,11 @@ fun SetupScreen(onDone: () -> Unit) {
                         enabled = !busy && name.isNotBlank() && code.length == 6,
                         shape = CircleShape,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                    ) { Text("Join family", style = MaterialTheme.typography.titleSmall) }
+                    ) { Text(stringResource(R.string.join_family_button), style = MaterialTheme.typography.titleSmall) }
                 }
             }
 
-            if (busy) Text("Working…", modifier = Modifier.padding(top = 16.dp), color = colors.onSurfaceVariant)
+            if (busy) Text(stringResource(R.string.working), modifier = Modifier.padding(top = 16.dp), color = colors.onSurfaceVariant)
             problem?.let { Text(it, color = colors.error, modifier = Modifier.padding(top = 16.dp)) }
         }
     }

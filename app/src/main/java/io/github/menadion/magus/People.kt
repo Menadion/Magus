@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ColorMatrix
@@ -32,9 +33,10 @@ import androidx.compose.ui.unit.sp
 
 // One person as the screens see them: the member record plus whether it is this phone.
 // The state rules (section 2 of the handoff) hang off this.
-data class Person(val member: Member, val isYou: Boolean) {
+// youLabel is "You" in the phone's language; the screen that builds the list passes it in.
+data class Person(val member: Member, val isYou: Boolean, private val youLabel: String = "You") {
     val uid get() = member.uid
-    val name get() = if (isYou) "You" else member.name
+    val name get() = if (isYou) youLabel else member.name
     val letter get() = member.name.trim().take(1).uppercase()
 
     fun state(now: Long): Markers.State = when {
@@ -48,12 +50,13 @@ data class Person(val member: Member, val isYou: Boolean) {
 @Composable
 fun cardStatus(person: Person, now: Long): Pair<String, Color> {
     val colors = MaterialTheme.colorScheme
-    if (person.isYou) return if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
+    val mine = if (person.member.sharing) stringResource(R.string.sharing_on) to colors.primary else stringResource(R.string.sharing_off) to colors.onSurfaceVariant
+    if (person.isYou) return mine
     return when (person.state(now)) {
-        Markers.State.YOU -> if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
-        Markers.State.SHARING -> "Sharing" to colors.onSurfaceVariant
-        Markers.State.PAUSED -> "Paused sharing" to colors.onSurfaceVariant
-        Markers.State.QUIET -> "Phone is quiet" to colors.error
+        Markers.State.YOU -> mine
+        Markers.State.SHARING -> stringResource(R.string.sharing) to colors.onSurfaceVariant
+        Markers.State.PAUSED -> stringResource(R.string.paused_sharing) to colors.onSurfaceVariant
+        Markers.State.QUIET -> stringResource(R.string.phone_is_quiet) to colors.error
     }
 }
 
@@ -62,12 +65,13 @@ fun cardStatus(person: Person, now: Long): Pair<String, Color> {
 fun listStatus(person: Person, now: Long): Pair<String, Color> {
     val colors = MaterialTheme.colorScheme
     val ago = person.member.updatedAtMillis?.let { lastSeenText(it, now) }
-    if (person.isYou) return if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
+    val mine = if (person.member.sharing) stringResource(R.string.sharing_on) to colors.primary else stringResource(R.string.sharing_off) to colors.onSurfaceVariant
+    if (person.isYou) return mine
     return when (person.state(now)) {
-        Markers.State.YOU -> if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
-        Markers.State.SHARING -> (if (ago == null) "Sharing" else "Seen $ago") to colors.onSurfaceVariant
-        Markers.State.PAUSED -> (if (ago == null) "Paused sharing" else "Paused sharing · $ago") to colors.onSurfaceVariant
-        Markers.State.QUIET -> (if (ago == null) "Phone quiet" else "Phone quiet · $ago") to colors.error
+        Markers.State.YOU -> mine
+        Markers.State.SHARING -> (if (ago == null) stringResource(R.string.sharing) else stringResource(R.string.seen_ago, ago)) to colors.onSurfaceVariant
+        Markers.State.PAUSED -> (if (ago == null) stringResource(R.string.paused_sharing) else stringResource(R.string.paused_sharing_ago, ago)) to colors.onSurfaceVariant
+        Markers.State.QUIET -> (if (ago == null) stringResource(R.string.phone_quiet) else stringResource(R.string.phone_quiet_ago, ago)) to colors.error
     }
 }
 

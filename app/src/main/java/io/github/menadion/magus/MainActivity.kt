@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import android.Manifest
@@ -250,14 +251,14 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     // Everyone on the screens: you first, then the family in a fixed order.
     val meNow = (me ?: Member(
         uid = myUid ?: "me",
-        name = Family.savedName(context) ?: "You",
+        name = Family.savedName(context) ?: context.getString(R.string.you),
         lat = 0.0,
         lng = 0.0,
         battery = null,
         updatedAtMillis = null,
         sharing = sharing,
     )).copy(sharing = sharing)
-    val people = listOf(Person(meNow, isYou = true)) +
+    val people = listOf(Person(meNow, isYou = true, youLabel = context.getString(R.string.you))) +
         members.sortedBy { it.name.lowercase() }.map { Person(it, isYou = false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -346,8 +347,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                         sharing = !sharing
                         Family.setSharing(context, sharing)
                         if (sharing) startSharingSteps() else ShareService.stop(context)
-                        notice = if (sharing) "Your location is being shared with your family"
-                        else "Your family won't be able to see you"
+                        notice = context.getString(if (sharing) R.string.sharing_notice_on else R.string.sharing_notice_off)
                     },
                     updateAvailable = Updates.newer != null,
                     onSettings = { showSettings = true },
@@ -404,24 +404,21 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                 explainBackground = false
                 startSharing()
             },
-            title = { Text("Keep sharing when Mogar is closed") },
+            title = { Text(stringResource(R.string.background_title)) },
             text = {
-                Text(
-                    "On the next screen, choose \"Allow all the time\". " +
-                        "Then your family can still see you after your phone restarts."
-                )
+                Text(stringResource(R.string.background_text))
             },
             confirmButton = {
                 TextButton(onClick = {
                     explainBackground = false
                     askBackground.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                }) { Text("Continue") }
+                }) { Text(stringResource(R.string.continue_label)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     explainBackground = false
                     startSharing()
-                }) { Text("Not now") }
+                }) { Text(stringResource(R.string.not_now)) }
             },
         )
     }
@@ -714,7 +711,7 @@ private fun drawMe(context: Context, style: Style, location: Location, sharing: 
     val me = Feature.fromGeometry(Point.fromLngLat(location.longitude, location.latitude)).apply {
         addStringProperty(
             "icon",
-            markerImage(context, style, state, "You", selected = false, you = true, photo = Family.savedPhoto(context)),
+            markerImage(context, style, state, context.getString(R.string.you), selected = false, you = true, photo = Family.savedPhoto(context)),
         )
     }
     style.getSourceAs<GeoJsonSource>(ME_SOURCE)?.setGeoJson(me)
@@ -802,12 +799,12 @@ fun FamilyStrip(
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
-                    "${familyName ?: "your"} Family",
+                    Family.familyLabel(LocalContext.current, familyName),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                 )
                 Text(
-                    if (memberCount == 1) "1 member" else "$memberCount members",
+                    if (memberCount == 1) stringResource(R.string.member_one) else stringResource(R.string.members_n, memberCount),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                     color = colors.onSurfaceVariant,
                 )
@@ -824,7 +821,7 @@ fun FamilyStrip(
                 Box {
                     Icon(
                         Icons.Default.Settings,
-                        contentDescription = if (updateAvailable) "Settings, a newer Mogar is out" else "Settings",
+                        contentDescription = stringResource(if (updateAvailable) R.string.settings_update_available else R.string.settings),
                         tint = colors.onSurfaceVariant,
                         modifier = Modifier.size(26.dp),
                     )
@@ -843,12 +840,13 @@ fun FamilyStrip(
 @Composable
 fun SharingDot(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
+    val sharingDescription = stringResource(if (sharing) R.string.sharing_state_on else R.string.sharing_state_off)
     Box(
         modifier = modifier
             .size(48.dp)
             .clip(CircleShape)
             .toggleable(value = sharing, role = Role.Switch, onValueChange = { onToggle() })
-            .semantics { contentDescription = if (sharing) "Sharing on" else "Sharing off" },
+            .semantics { contentDescription = sharingDescription },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -923,7 +921,7 @@ fun ShowEveryoneButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         ) {
             ExpandGlyph(colors.primary)
             Text(
-                "Show everyone",
+                stringResource(R.string.show_everyone),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.labelLarge.fontWeight),
                 color = colors.primary,
             )
