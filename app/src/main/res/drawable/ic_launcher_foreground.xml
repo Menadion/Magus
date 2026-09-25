@@ -1,24 +1,23 @@
-<!-- M's sketch, 2026-09-26 (second idea): circles inside circles, each stepped to the right, blue
-     then green then purple, with a clear ring between each. The blue is the background layer.
-     Launchers show the middle 72 of these 108 dp, so the green ring's edge just reaches the icon's
-     edge on the right, as drawn. -->
+<!-- M's sketch, 2026-09-26, third idea: circles inside circles read as crescent moons. Every inner
+     circle (white gap, green, white gap, purple) touches the same point on the right, so each colour
+     and each gap tapers to nothing there, and the whole set stops 2.5 dp short of the icon's edge
+     ("a tad of padding", his words), leaving a thin blue rim on the right. The blue is the
+     background layer. Launchers show the middle 72 of these 108 dp. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- ring around the green -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M62,27 A27,27 0 1 1 62,81 A27,27 0 1 1 62,27 Z" />
+        android:pathData="M56,22.5 A31.5,31.5 0 1 1 56,85.5 A31.5,31.5 0 1 1 56,22.5 Z" />
     <path
         android:fillColor="#FF26803F"
-        android:pathData="M62,30 A24,24 0 1 1 62,78 A24,24 0 1 1 62,30 Z" />
-    <!-- ring around the purple -->
+        android:pathData="M57.25,23.75 A30.25,30.25 0 1 1 57.25,84.25 A30.25,30.25 0 1 1 57.25,23.75 Z" />
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M70,39 A15,15 0 1 1 70,69 A15,15 0 1 1 70,39 Z" />
+        android:pathData="M63.25,29.75 A24.25,24.25 0 1 1 63.25,78.25 A24.25,24.25 0 1 1 63.25,29.75 Z" />
     <path
         android:fillColor="#FF7B42C8"
-        android:pathData="M70,42 A12,12 0 1 1 70,66 A12,12 0 1 1 70,42 Z" />
+        android:pathData="M64.5,31 A23,23 0 1 1 64.5,77 A23,23 0 1 1 64.5,31 Z" />
 </vector>
