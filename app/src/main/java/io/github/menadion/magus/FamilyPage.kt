@@ -1,5 +1,10 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import androidx.activity.result.contract.ActivityResultContracts
@@ -168,9 +173,18 @@ fun FamilyPage(
                 modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                Group("Members") {
-                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (person in people) PersonRow(person, now, onPick = { onPick(person.uid) })
+                // The list hugs a short family and scrolls inside itself past about four people, so
+                // You and Leave stay within reach on any screen size.
+                val listMax = (LocalConfiguration.current.screenHeightDp * 0.38f).dp
+                Group(if (people.size == 1) "Members" else "Members (${people.size})") {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = listMax),
+                        contentPadding = PaddingValues(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(people, key = { it.uid }) { person ->
+                            PersonRow(person, now, onPick = { onPick(person.uid) })
+                        }
                     }
                 }
 
