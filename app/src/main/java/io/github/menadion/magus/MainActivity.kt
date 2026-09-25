@@ -163,6 +163,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     var showSettings by remember { mutableStateOf(false) }
     var showFamilyPage by remember { mutableStateOf(false) }
     var familyName by remember { mutableStateOf(Family.savedFamilyName(context)) }
+    var familyCreator by remember { mutableStateOf<String?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
     var me by remember { mutableStateOf<Member?>(null) }
     var showList by remember { mutableStateOf(false) }
@@ -186,7 +187,10 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             members = list.filter { it.uid != myUid }
             me = list.find { it.uid == myUid }
         }
-        val nameWatch = Family.listenFamilyName(context) { familyName = it }
+        val nameWatch = Family.listenFamily(context) { name, createdBy ->
+            if (name != null) familyName = name
+            familyCreator = createdBy
+        }
         onDispose {
             registration?.remove()
             nameWatch?.remove()
@@ -298,6 +302,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                 FamilyStrip(
                     code = code,
                     familyName = familyName,
+                    memberCount = members.size + 1,
                     sharing = sharing,
                     onToggle = {
                         sharing = !sharing
@@ -336,6 +341,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             BackHandler { showFamilyPage = false }
             FamilyPage(
                 code = code,
+                canRename = familyCreator != null && familyCreator == myUid,
                 people = people,
                 now = now,
                 onBack = { showFamilyPage = false },
@@ -729,6 +735,7 @@ private fun showFamily(context: Context, style: Style, members: List<Member>, no
 fun FamilyStrip(
     code: String,
     familyName: String?,
+    memberCount: Int,
     sharing: Boolean,
     onToggle: () -> Unit,
     onSettings: () -> Unit,
@@ -765,7 +772,7 @@ fun FamilyStrip(
                     maxLines = 2,
                 )
                 Text(
-                    "Code $code",
+                    if (memberCount == 1) "1 member" else "$memberCount members",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                     color = colors.onSurfaceVariant,
                 )

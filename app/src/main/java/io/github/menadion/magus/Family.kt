@@ -113,22 +113,23 @@ object Family {
         prefs(context).edit().putString("name", name).apply()
     }
 
-    // Changes the family's name for everyone. Anyone in the family may; the rules check membership.
+    // Changes the family's name for everyone. Only its creator may; the rules check that too.
     suspend fun renameFamily(context: Context, name: String) {
         val code = savedCode(context) ?: return
         db.collection("families").document(code).update("name", name).await()
         prefs(context).edit().putString("familyName", name).apply()
     }
 
-    // Follows the family's name, so a rename by someone else shows up here too.
-    fun listenFamilyName(context: Context, onChange: (String) -> Unit): ListenerRegistration? {
+    // Follows the family itself: its name (a rename by the creator shows up here too) and who made it.
+    fun listenFamily(context: Context, onChange: (name: String?, createdBy: String?) -> Unit): ListenerRegistration? {
         val code = savedCode(context) ?: return null
         return db.collection("families").document(code).addSnapshotListener { snapshot, _ ->
-            val name = snapshot?.getString("name") ?: return@addSnapshotListener
-            if (name != savedFamilyName(context)) {
+            if (snapshot == null) return@addSnapshotListener
+            val name = snapshot.getString("name")
+            if (name != null && name != savedFamilyName(context)) {
                 prefs(context).edit().putString("familyName", name).apply()
-                onChange(name)
             }
+            onChange(name, snapshot.getString("createdBy"))
         }
     }
 

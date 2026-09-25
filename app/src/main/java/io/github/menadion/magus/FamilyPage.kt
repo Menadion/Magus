@@ -1,5 +1,9 @@
 package io.github.menadion.magus
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,9 +38,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // The family page, opened by tapping the family name on the map. Laid out like Messenger's group
@@ -43,6 +50,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun FamilyPage(
     code: String,
+    canRename: Boolean,
     people: List<Person>,
     now: Long,
     onBack: () -> Unit,
@@ -57,6 +65,7 @@ fun FamilyPage(
     var editFamilyName by remember { mutableStateOf(false) }
     var editMyName by remember { mutableStateOf(false) }
     var confirmLeave by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<String?>(null) }
     val me = people.firstOrNull { it.isYou }
@@ -104,13 +113,35 @@ fun FamilyPage(
                         style = MaterialTheme.typography.headlineLarge,
                         textAlign = TextAlign.Center,
                     )
-                    IconButton(onClick = { editFamilyName = true }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Change family name", tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                    if (canRename) {
+                        IconButton(onClick = { editFamilyName = true }, modifier = Modifier.size(40.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = "Change family name", tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
-                Text(code, style = MaterialTheme.typography.displayMedium, modifier = Modifier.padding(top = 4.dp))
+                // Tap the code to copy it, for pasting into a chat.
                 Text(
-                    "Give this code to family so they can join.",
+                    code,
+                    style = MaterialTheme.typography.displayMedium,
+                    color = if (copied) colors.primary else colors.onSurface,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Mogar family code", code))
+                            copied = true
+                        }
+                        .padding(horizontal = 12.dp, vertical = 2.dp),
+                )
+                LaunchedEffect(copied) {
+                    if (copied) {
+                        delay(1500)
+                        copied = false
+                    }
+                }
+                Text(
+                    if (copied) "Copied" else "Tap the code to copy it, then send it to family so they can join.",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                     color = colors.onSurfaceVariant,
                     textAlign = TextAlign.Center,
