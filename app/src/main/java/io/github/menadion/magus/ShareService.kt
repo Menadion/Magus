@@ -45,6 +45,7 @@ class ShareService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         client = LocationServices.getFusedLocationProviderClient(this)
     }
 
@@ -74,6 +75,7 @@ class ShareService : Service() {
     }
 
     override fun onDestroy() {
+        isRunning = false
         client.removeLocationUpdates(onLocation)
         super.onDestroy()
     }
@@ -96,6 +98,9 @@ class ShareService : Service() {
     }
 
     companion object {
+        // True while the background sharer is alive in this process.
+        @Volatile var isRunning = false
+
         // Starts sharing if it's switched on and location is allowed. Safe to call more than once.
         // fromBackground: called with no screen open (after a restart), which needs "Allow all the time".
         fun start(context: Context, fromBackground: Boolean = false) {

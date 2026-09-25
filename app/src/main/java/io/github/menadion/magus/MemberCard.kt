@@ -126,6 +126,24 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
                     modifier = Modifier.weight(1f),
                 )
             }
+            Diagnostics.summary(person.member.diag)?.let { line ->
+                Text(
+                    line,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                )
+            }
+            (person.member.diag?.get("lastCrash") as? String)?.let { crash ->
+                Text(
+                    "Last crash: $crash",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.error,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                )
+            }
         }
     }
 }

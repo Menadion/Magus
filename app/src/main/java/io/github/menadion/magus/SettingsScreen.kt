@@ -110,6 +110,12 @@ fun SettingsScreen(code: String, onBack: () -> Unit, onKeepRunning: () -> Unit, 
                         onClick = { showAbout = true },
                     )
                 }
+                Text(
+                    "Mogar ${Diagnostics.appVersion(context)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
                 Group("Leave") {
                     NavRow(
                         title = "Leave family",

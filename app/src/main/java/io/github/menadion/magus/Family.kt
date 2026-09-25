@@ -23,6 +23,7 @@ data class Member(
     val battery: Int?,
     val updatedAtMillis: Long?,
     val sharing: Boolean,
+    val diag: Map<String, Any?>? = null, // see Diagnostics
 )
 
 // Everything the app knows about "my family": what's saved on this phone, and what's in Firebase.
@@ -131,6 +132,7 @@ object Family {
                 "battery" to battery,
                 "sharing" to true,
                 "updatedAt" to FieldValue.serverTimestamp(),
+                "diag" to Diagnostics.snapshot(context),
             ),
             SetOptions.merge(),
         )
@@ -157,6 +159,7 @@ object Family {
                         battery = doc.getLong("battery")?.toInt(),
                         updatedAtMillis = doc.getTimestamp("updatedAt")?.toDate()?.time,
                         sharing = doc.getBoolean("sharing") ?: true,
+                        diag = (doc.get("diag") as? Map<*, *>)?.mapKeys { it.key.toString() },
                     )
                 }
                 onChange(members)

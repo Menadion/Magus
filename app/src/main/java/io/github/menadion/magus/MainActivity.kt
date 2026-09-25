@@ -130,6 +130,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(this)
+        Diagnostics.noteAppOpened(this)
         setContent {
             MogarTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
