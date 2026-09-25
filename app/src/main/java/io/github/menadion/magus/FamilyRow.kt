@@ -1,6 +1,5 @@
 package io.github.menadion.magus
 
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.clickable
@@ -8,21 +7,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,21 +34,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-// The floating card at the bottom of the map: "Family", See all, and one column per person.
-// Spec: HANDOFF.md section 3, "Family row". You first, then the family in a fixed order.
+// The family box on the bottom edge of the map: "Family", See all, and one column per person.
+// Spec: HANDOFF.md section 3, "Family row". You first, then the family in a fixed order. Since
+// 2026-09-25 evening (M's call, from a ride app's sheet) it sits flush with the screen's sides and
+// bottom, top corners rounded; the person's card and the list rise out of its top (BottomPanel).
 @Composable
 fun FamilyRow(people: List<Person>, now: Long, onPick: (String) -> Unit, onSeeAll: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     Surface(
-        modifier = modifier
-            .navigationBarsPadding()
-            .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
-            .fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = BOX_CORNER.dp, topEnd = BOX_CORNER.dp),
         color = colors.surfaceContainerLowest,
-        shadowElevation = 3.dp,
+        shadowElevation = 6.dp,
     ) {
-        Column(modifier = Modifier.padding(start = 20.dp, top = 8.dp, end = 8.dp, bottom = 12.dp)) {
+        Column(modifier = Modifier.navigationBarsPadding().padding(start = 20.dp, top = 8.dp, end = 8.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Family", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                 TextButton(onClick = onSeeAll, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -101,48 +99,37 @@ private fun PersonColumn(person: Person, now: Long, onPick: () -> Unit, modifier
     }
 }
 
-// See all: every person as a row, in a sheet over the map. Spec: HANDOFF.md section 6.
-@OptIn(ExperimentalMaterial3Api::class)
+// See all: every person as a row, the bottom panel's content after See all. The rows scroll inside
+// the panel, so a big family never grows it. Spec: HANDOFF.md section 6; since 2026-09-25 evening
+// the panel around it (BottomPanel) sets the size and shape.
 @Composable
-fun FamilyListSheet(people: List<Person>, now: Long, onPick: (String) -> Unit, onClose: () -> Unit) {
+fun FamilyList(people: List<Person>, now: Long, onPick: (String) -> Unit, onClose: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    ModalBottomSheet(
-        onDismissRequest = onClose,
-        containerColor = colors.surfaceContainerLow,
-        shape = MaterialTheme.shapes.extraLarge,
-        dragHandle = null,
+    Column(
+        modifier = Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 20.dp),
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
+            Text("Family", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close list")
+            }
+        }
+        LazyColumn(
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
-                Text("Family", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-                IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close list")
-                }
+            items(people, key = { it.uid }) { person ->
+                PersonRow(person, now, onPick = { onPick(person.uid) })
             }
-            // The rows scroll inside the sheet past half the screen, so a big family never pushes
-            // the sheet off the top.
-            val listMax = (LocalConfiguration.current.screenHeightDp * 0.5f).dp
-            LazyColumn(
-                modifier = Modifier.heightIn(max = listMax),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(people, key = { it.uid }) { person ->
-                    PersonRow(person, now, onPick = { onPick(person.uid) })
-                }
-            }
-            Text(
-                "Tap a name to see them on the map",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
-                color = colors.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            )
         }
+        Text(
+            "Tap a name to see them on the map",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        )
     }
 }
 

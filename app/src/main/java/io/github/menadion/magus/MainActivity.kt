@@ -19,6 +19,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
@@ -72,8 +73,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -267,42 +270,68 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             paddingTop = topHeight,
             paddingBottom = bottomHeight,
             onLocationReady = { startSharingSteps() },
-            onDotTapped = { uid -> selectedUid = uid },
+            // A tap on empty map (uid null) closes whatever the panel shows.
+            onDotTapped = { uid ->
+                showList = false
+                selectedUid = uid
+            },
         )
 
-        // Bottom: the family row while nobody is picked, the person's card while someone is.
-        // The card keeps showing the last picked person while it slides away.
+        // Bottom: the family box on the screen's bottom edge, and the panel that rises out of its
+        // top: the person's card while someone is picked, the list after See all. The panel keeps
+        // showing the last picked person while it slides away.
         val selected = people.find { it.uid == selectedUid }
         var shown by remember { mutableStateOf<Person?>(null) }
         if (selected != null) shown = selected
-        AnimatedVisibility(
-            visible = selected == null,
-            enter = slideInVertically(tween(250)) { it },
-            exit = slideOutVertically(tween(250)) { it },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        ) {
+        val panelOpen = showList || selected != null
+        fun closePanel() {
+            showList = false
+            selectedUid = null
+        }
+        BackHandler(enabled = panelOpen) { closePanel() }
+        var boxHeight by remember { mutableIntStateOf(0) }
+        val boxHeightDp = with(LocalDensity.current) { boxHeight.toDp() }
+        Box(modifier = Modifier.align(Alignment.BottomCenter).onSizeChanged { bottomHeight = it.height }) {
+            AnimatedVisibility(
+                visible = panelOpen,
+                enter = slideInVertically(tween(320)) { it },
+                exit = slideOutVertically(tween(260)) { it },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = (boxHeightDp - BOX_CORNER.dp).coerceAtLeast(0.dp)),
+            ) {
+                BottomPanel(onClose = { closePanel() }) {
+                    Crossfade(targetState = showList, label = "panel", modifier = Modifier.fillMaxSize()) { list ->
+                        if (list) {
+                            FamilyList(
+                                people = people,
+                                now = now,
+                                onPick = {
+                                    showList = false
+                                    selectedUid = it
+                                },
+                                onClose = { showList = false },
+                            )
+                        } else {
+                            shown?.let { MemberCard(person = it, now = now, onClose = { selectedUid = null }) }
+                        }
+                    }
+                }
+            }
+            // Drawn over the panel, so the panel's bottom hides behind the box's rounded top.
             FamilyRow(
                 people = people,
                 now = now,
-                onPick = { selectedUid = it },
-                onSeeAll = { showList = true },
-                modifier = Modifier.onSizeChanged { bottomHeight = it.height },
+                onPick = {
+                    showList = false
+                    selectedUid = it
+                },
+                onSeeAll = {
+                    selectedUid = null
+                    showList = true
+                },
+                modifier = Modifier.align(Alignment.BottomCenter).zIndex(1f).onSizeChanged { boxHeight = it.height },
             )
-        }
-        AnimatedVisibility(
-            visible = selected != null,
-            enter = slideInVertically(tween(320)) { it },
-            exit = slideOutVertically(tween(320)) { it },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        ) {
-            shown?.let {
-                MemberCard(
-                    person = it,
-                    now = now,
-                    onClose = { selectedUid = null },
-                    modifier = Modifier.onSizeChanged { size -> bottomHeight = size.height },
-                )
-            }
         }
 
         // Top: the family card, and Show everyone under it while someone is picked.
@@ -334,18 +363,6 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
         }
 
         SharingNotice(text = notice, modifier = Modifier.align(Alignment.Center))
-
-        if (showList) {
-            FamilyListSheet(
-                people = people,
-                now = now,
-                onPick = {
-                    showList = false
-                    selectedUid = it
-                },
-                onClose = { showList = false },
-            )
-        }
 
         if (showFamilyPage) {
             BackHandler { showFamilyPage = false }

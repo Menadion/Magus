@@ -7,12 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -67,83 +65,74 @@ fun lastSeenText(then: Long, now: Long): String {
     }
 }
 
-// The sheet that slides up when a person is picked: avatar, name, status, and two tiles.
-// Spec: HANDOFF.md section 5. Height hugs its content.
+// The person's card, the bottom panel's content when someone is picked: avatar, name, status, and
+// two tiles. Spec: HANDOFF.md section 5. Since 2026-09-25 evening the panel around it (BottomPanel)
+// sets the size and shape; this only lays out the inside.
 @Composable
 fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     val state = person.state(now)
     val (status, statusColor) = cardStatus(person, now)
     val quiet = state == Markers.State.QUIET
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = colors.surfaceContainerLow,
-        shadowElevation = 6.dp,
+    Column(
+        modifier = modifier.fillMaxWidth().padding(start = 20.dp, top = 4.dp, end = 20.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .padding(start = 20.dp, top = 10.dp, end = 20.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(modifier = Modifier.width(32.dp).height(4.dp).background(colors.outlineVariant, CircleShape))
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Avatar(state, person.letter, 56.dp, photo = person.member.photo, you = person.isYou)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(person.name, style = MaterialTheme.typography.headlineLarge)
-                    Text(status, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.bodyMedium.fontWeight), color = statusColor)
-                }
-                Box(modifier = Modifier.size(48.dp).background(colors.surfaceContainerHigh, CircleShape)) {
-                    IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Close and show everyone", tint = colors.onSurface)
-                    }
+            Avatar(state, person.letter, 56.dp, photo = person.member.photo, you = person.isYou)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(person.name, style = MaterialTheme.typography.headlineLarge)
+                Text(status, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.bodyMedium.fontWeight), color = statusColor)
+            }
+            Box(modifier = Modifier.size(48.dp).background(colors.surfaceContainerHigh, CircleShape)) {
+                IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Close and show everyone", tint = colors.onSurface)
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                val seen = person.member.updatedAtMillis?.let { lastSeenText(it, now) } ?: "—"
-                Tile(
-                    label = "Last seen",
-                    value = seen,
-                    valueColor = if (quiet) colors.error else colors.onSurface,
-                    icon = { ClockGlyph(colors.onSurfaceVariant) },
-                    modifier = Modifier.weight(1f),
-                )
-                val battery = person.member.battery
-                val low = battery != null && battery < LOW_BATTERY
-                Tile(
-                    label = "Battery",
-                    value = battery?.let { "$it%" } ?: "—",
-                    valueColor = if (low) colors.error else colors.onSurface,
-                    icon = { BatteryGlyph(if (low) colors.error else colors.onSurfaceVariant) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Diagnostics.summary(person.member.diag)?.let { line ->
-                Text(
-                    line,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                )
-            }
-            (person.member.diag?.get("lastCrash") as? String)?.let { crash ->
-                Text(
-                    "Last crash: $crash",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.error,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                )
-            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val seen = person.member.updatedAtMillis?.let { lastSeenText(it, now) } ?: "—"
+            Tile(
+                label = "Last seen",
+                value = seen,
+                valueColor = if (quiet) colors.error else colors.onSurface,
+                icon = { ClockGlyph(colors.onSurfaceVariant) },
+                modifier = Modifier.weight(1f),
+            )
+            val battery = person.member.battery
+            val low = battery != null && battery < LOW_BATTERY
+            Tile(
+                label = "Battery",
+                value = battery?.let { "$it%" } ?: "—",
+                valueColor = if (low) colors.error else colors.onSurface,
+                icon = { BatteryGlyph(if (low) colors.error else colors.onSurfaceVariant) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Diagnostics.summary(person.member.diag)?.let { line ->
+            Text(
+                line,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            )
+        }
+        (person.member.diag?.get("lastCrash") as? String)?.let { crash ->
+            Text(
+                "Last crash: $crash",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.error,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
         }
     }
 }
