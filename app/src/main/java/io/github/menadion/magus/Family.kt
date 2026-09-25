@@ -103,6 +103,19 @@ object Family {
         save(context, name, code, found.getString("name"))
     }
 
+    // Leaves the family: my record goes from Firebase, this phone forgets the family. My name stays
+    // for next time, and sharing is back on for whatever family comes next.
+    suspend fun leave(context: Context) {
+        val code = savedCode(context) ?: return
+        val uid = myId()
+        db.collection("families").document(code).collection("members").document(uid).delete().await()
+        prefs(context).edit()
+            .remove("familyCode")
+            .remove("familyName")
+            .putBoolean("sharing", true)
+            .apply()
+    }
+
     // Overwrites my latest location. Nothing older is kept.
     fun sendLocation(context: Context, location: Location) {
         if (!isSharing(context)) return

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -35,20 +36,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 // Settings, opened by the gear on the map. A full screen. Spec: HANDOFF.md section 7.
-// Leave family and change name get rows here when they are built.
+// Change name gets a row here when it is built.
 @Composable
-fun SettingsScreen(code: String, onBack: () -> Unit, onKeepRunning: () -> Unit) {
+fun SettingsScreen(code: String, onBack: () -> Unit, onKeepRunning: () -> Unit, onLeft: () -> Unit) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
     var showAbout by remember { mutableStateOf(false) }
+    var confirmLeave by remember { mutableStateOf(false) }
+    var leaving by remember { mutableStateOf(false) }
+    var problem by remember { mutableStateOf<String?>(null) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = colors.surface) {
         Column(
@@ -103,8 +110,59 @@ fun SettingsScreen(code: String, onBack: () -> Unit, onKeepRunning: () -> Unit) 
                         onClick = { showAbout = true },
                     )
                 }
+                Group("Leave") {
+                    NavRow(
+                        title = "Leave family",
+                        subtitle = "Your family stops seeing you",
+                        icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = colors.error) },
+                        iconBackground = colors.surfaceContainerHigh,
+                        titleColor = colors.error,
+                        onClick = { confirmLeave = true },
+                    )
+                }
+                problem?.let { Text(it, color = colors.error, modifier = Modifier.padding(horizontal = 8.dp)) }
             }
         }
+    }
+
+    if (confirmLeave) {
+        AlertDialog(
+            onDismissRequest = { if (!leaving) confirmLeave = false },
+            containerColor = MogarColors.Dialog,
+            shape = MaterialTheme.shapes.extraLarge,
+            icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = colors.error) },
+            title = { Text("Leave ${Family.familyLabel(context)}?", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
+            text = {
+                Text(
+                    "Your family will stop seeing you. You can join again with the code $code.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.onSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !leaving,
+                    onClick = {
+                        leaving = true
+                        problem = null
+                        scope.launch {
+                            try {
+                                ShareService.stop(context)
+                                Family.leave(context)
+                                confirmLeave = false
+                                onLeft()
+                            } catch (e: Exception) {
+                                problem = e.message ?: "Couldn't leave. Check your connection and try again."
+                                confirmLeave = false
+                            } finally {
+                                leaving = false
+                            }
+                        }
+                    },
+                ) { Text(if (leaving) "Leaving\u2026" else "Leave", color = colors.error) }
+            },
+            dismissButton = { TextButton(enabled = !leaving, onClick = { confirmLeave = false }) { Text("Cancel") } },
+        )
     }
 
     if (showAbout) {
@@ -143,7 +201,14 @@ private fun Divider() {
 }
 
 @Composable
-private fun NavRow(title: String, subtitle: String, icon: @Composable () -> Unit, onClick: () -> Unit) {
+private fun NavRow(
+    title: String,
+    subtitle: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    iconBackground: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primaryContainer,
+    titleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+) {
     val colors = MaterialTheme.colorScheme
     Surface(onClick = onClick, color = colors.surfaceContainerLowest, modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp)) {
         Row(
@@ -151,9 +216,9 @@ private fun NavRow(title: String, subtitle: String, icon: @Composable () -> Unit
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(modifier = Modifier.size(40.dp).background(colors.primaryContainer, CircleShape), contentAlignment = Alignment.Center) { icon() }
+            Box(modifier = Modifier.size(40.dp).background(iconBackground, CircleShape), contentAlignment = Alignment.Center) { icon() }
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(title, style = MaterialTheme.typography.titleSmall, color = titleColor)
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight), color = colors.onSurfaceVariant)
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.onSurfaceVariant)

@@ -53,7 +53,7 @@ fun SetupScreen(onDone: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
 
-    var name by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(Family.savedName(context) ?: "") }
     var familyName by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var joining by remember { mutableStateOf(false) } // which choice card is open

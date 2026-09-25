@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
                     if (familyCode == null) {
                         SetupScreen(onDone = { code = Family.savedCode(this) })
                     } else {
-                        FamilyScreen(familyCode)
+                        FamilyScreen(familyCode, onLeft = { code = null })
                     }
                 }
             }
@@ -148,7 +148,7 @@ class MainActivity : ComponentActivity() {
 
 // The map, the top strip with the sharing switch, and the steps that let sharing run in the background.
 @Composable
-fun FamilyScreen(code: String) {
+fun FamilyScreen(code: String, onLeft: () -> Unit) {
     val context = LocalContext.current
     var sharing by remember { mutableStateOf(Family.isSharing(context)) }
     var explainBackground by remember { mutableStateOf(false) }
@@ -314,6 +314,10 @@ fun FamilyScreen(code: String) {
                 code = code,
                 onBack = { showSettings = false },
                 onKeepRunning = { showKeepRunning = true },
+                onLeft = {
+                    showSettings = false
+                    onLeft()
+                },
             )
         }
 
