@@ -16,14 +16,15 @@ parents who are not phone people: one map, one switch, nothing to learn.
   notification so sharing is always visible. A phone restart brings it back on its own.
 - **Keep Mogar running.** Xiaomi, Vivo and Samsung close background apps to save battery.
   A one-time screen walks through the settings that stop that, per brand.
-- **Profiles.** A name and a small picture, shown on the dot.
+- **Profiles.** A name and a small picture, shown on the dot. A phone number if you want,
+  so the family can call or text you from your card.
 - **Light and dark.**
 
 ## What it stores
 
 Only what the map needs: a name, a family code, the latest location (overwritten each time,
-no history), battery, last seen, and an optional picture shrunk to 128 pixels. Sign-in is
-anonymous. Nothing else, no phone numbers, no emails. Data lives in a Firebase project owned
+no history), battery, last seen, an optional picture shrunk to 128 pixels, and an optional
+phone number seen only by the family. Sign-in is anonymous. Nothing else, no emails. Data lives in a Firebase project owned
 by the family that runs the app.
 
 ## Installing

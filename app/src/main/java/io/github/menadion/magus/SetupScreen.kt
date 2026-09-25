@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.res.booleanResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -56,6 +57,7 @@ fun SetupScreen(onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     var name by remember { mutableStateOf(Family.savedName(context) ?: "") }
+    var phone by remember { mutableStateOf(Phone.digits(Family.savedPhone(context))) }
     var familyName by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var joining by remember { mutableStateOf(false) } // which choice card is open
@@ -110,6 +112,19 @@ fun SetupScreen(onDone: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
             )
 
+            // Optional. "+63" is fixed; the person types the ten digits after it (see Phone).
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = Phone.clean(it) },
+                label = { Text(stringResource(R.string.phone_number)) },
+                prefix = { Text(Phone.PREFIX + " ") },
+                supportingText = { Text(stringResource(R.string.phone_optional)) },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            )
+
             Text(stringResource(R.string.your_family), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 20.dp))
 
             Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -132,7 +147,7 @@ fun SetupScreen(onDone: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Button(
-                        onClick = { attempt { Family.create(context, name.trim(), familyName.trim()) } },
+                        onClick = { attempt { Family.create(context, name.trim(), familyName.trim(), Phone.store(phone)) } },
                         enabled = !busy && name.isNotBlank() && familyName.isNotBlank(),
                         shape = CircleShape,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -155,7 +170,7 @@ fun SetupScreen(onDone: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Button(
-                        onClick = { attempt { Family.join(context, name.trim(), code) } },
+                        onClick = { attempt { Family.join(context, name.trim(), code, Phone.store(phone)) } },
                         enabled = !busy && name.isNotBlank() && code.length == 6,
                         shape = CircleShape,
                         modifier = Modifier.fillMaxWidth().height(52.dp),

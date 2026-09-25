@@ -1,5 +1,19 @@
 package io.github.menadion.magus
 
+import kotlinx.coroutines.delay
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -118,6 +132,7 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
                 modifier = Modifier.weight(1f),
             )
         }
+        person.member.phone?.let { PhoneRow(it) }
         Diagnostics.summary(person.member.diag)?.let { line ->
             Text(
                 line,
@@ -135,6 +150,50 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
+        }
+    }
+}
+
+// The person's number: tap it to copy, Call opens the dialer, Text the messaging app. On your own
+// card too, so you can see what the family sees. Spec: M's calls 2026-09-26.
+@Composable
+private fun PhoneRow(phone: String) {
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(1500)
+            copied = false
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            if (copied) stringResource(R.string.copied) else Phone.display(phone),
+            style = MaterialTheme.typography.titleMedium,
+            color = if (copied) colors.primary else colors.onSurface,
+            modifier = Modifier
+                .weight(1f)
+                .clip(MaterialTheme.shapes.small)
+                .clickable {
+                    Phone.copy(context, phone)
+                    copied = true
+                }
+                .padding(vertical = 8.dp),
+        )
+        FilledTonalButton(onClick = { Phone.call(context, phone) }, contentPadding = PaddingValues(horizontal = 14.dp)) {
+            Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(stringResource(R.string.call))
+        }
+        FilledTonalButton(onClick = { Phone.text(context, phone) }, contentPadding = PaddingValues(horizontal = 14.dp)) {
+            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(stringResource(R.string.text_message))
         }
     }
 }

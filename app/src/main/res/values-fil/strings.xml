@@ -103,6 +103,12 @@
     <string name="leave_family_q">Aalis sa %1$s?</string>
     <string name="leave_family_text">Hindi ka na makikita ng pamilya mo. Puwede kang sumali ulit gamit ang code %1$s.</string>
     <string name="leaving">Umaalis…</string>
+    <string name="phone_number">Numero ng phone</string>
+    <string name="phone_optional">Opsyonal</string>
+    <string name="add_number">Magdagdag ng numero</string>
+    <string name="change_number">Palitan ang numero</string>
+    <string name="call">Tawagan</string>
+    <string name="text_message">I-text</string>
 
     <!-- Keep Mogar running -->
     <string name="keep_running_intro">May mga phone na nagsasara ng Mogar para makatipid ng baterya. Kapag nangyari iyon, hindi na makikita ng pamilya mo kung nasaan ka. Gawin ang mga hakbang na ito nang isang beses.</string>

@@ -27,13 +27,15 @@ data class Member(
     val sharing: Boolean,
     val diag: Map<String, Any?>? = null, // see Diagnostics
     val photo: ByteArray? = null, // small JPEG, see Photos
+    val phone: String? = null, // +639XXXXXXXXX, optional, see Phone
 )
 
 // Everything the app knows about "my family": what's saved on this phone, and what's in Firebase.
 //
 // In Firebase:
 //   families/{code}                   family name, who made it, and when
-//   families/{code}/members/{uid}     name, sharing on/off, latest location, battery, last seen
+//   families/{code}/members/{uid}     name, sharing on/off, latest location, battery, last seen,
+//                                     picture and phone number (both optional)
 //                                     (overwritten, never a history)
 object Family {
     // No I or O, so nobody reads a 1 or a 0 by mistake.
@@ -45,11 +47,13 @@ object Family {
     fun savedName(context: Context): String? = prefs(context).getString("name", null)
     fun savedCode(context: Context): String? = prefs(context).getString("familyCode", null)
     fun savedFamilyName(context: Context): String? = prefs(context).getString("familyName", null)
+    fun savedPhone(context: Context): String? = prefs(context).getString("phone", null)
     fun isSharing(context: Context): Boolean = prefs(context).getBoolean("sharing", true)
 
-    private fun save(context: Context, name: String, code: String, familyName: String?) {
+    private fun save(context: Context, name: String, code: String, familyName: String?, phone: String?) {
         prefs(context).edit()
             .putString("name", name)
+            .putString("phone", phone)
             .putString("familyCode", code)
             .putString("familyName", familyName)
             .putBoolean("sharing", true)
@@ -80,7 +84,7 @@ object Family {
     }
 
     // Makes a new family with a fresh code, adds me to it, and returns the code.
-    suspend fun create(context: Context, name: String, familyName: String): String {
+    suspend fun create(context: Context, name: String, familyName: String, phone: String? = null): String {
         val uid = myId()
         repeat(5) {
             val code = (1..6).map { CODE_LETTERS.random() }.joinToString("")
@@ -89,8 +93,8 @@ object Family {
                 family.set(
                     mapOf("name" to familyName, "createdBy" to uid, "createdAt" to FieldValue.serverTimestamp())
                 ).await()
-                family.collection("members").document(uid).set(mapOf("name" to name, "sharing" to true)).await()
-                save(context, name, code, familyName)
+                family.collection("members").document(uid).set(memberFields(name, phone)).await()
+                save(context, name, code, familyName, phone)
                 return code
             }
         }
@@ -98,15 +102,29 @@ object Family {
     }
 
     // Joins an existing family. Fails if nobody has made a family with that code.
-    suspend fun join(context: Context, name: String, typedCode: String) {
+    suspend fun join(context: Context, name: String, typedCode: String, phone: String? = null) {
         val code = typedCode.trim().uppercase()
         val uid = myId()
         val family = db.collection("families").document(code)
         val found = family.get().await()
         if (!found.exists()) error(context.getString(R.string.no_family_with_code, code))
         family.collection("members").document(uid)
-            .set(mapOf("name" to name, "sharing" to true), SetOptions.merge()).await()
-        save(context, name, code, found.getString("name"))
+            .set(memberFields(name, phone), SetOptions.merge()).await()
+        save(context, name, code, found.getString("name"), phone)
+    }
+
+    // A new member's record: the number only when one was typed.
+    private fun memberFields(name: String, phone: String?): Map<String, Any> =
+        mutableMapOf<String, Any>("name" to name, "sharing" to true).apply { if (phone != null) put("phone", phone) }
+
+    // Sets or removes my phone number, for the family's cards and this phone's own card.
+    suspend fun setPhone(context: Context, phone: String?) {
+        val code = savedCode(context) ?: return
+        val uid = myId()
+        val value: Any = phone ?: FieldValue.delete()
+        db.collection("families").document(code).collection("members").document(uid)
+            .set(mapOf("phone" to value), SetOptions.merge()).await()
+        prefs(context).edit().putString("phone", phone).apply()
     }
 
     // Changes my name, on this phone and for everyone else's map.
@@ -215,6 +233,7 @@ object Family {
                         sharing = doc.getBoolean("sharing") ?: true,
                         diag = (doc.get("diag") as? Map<*, *>)?.mapKeys { it.key.toString() },
                         photo = doc.getBlob("photo")?.toBytes(),
+                        phone = doc.getString("phone"),
                     )
                 }
                 onChange(members)

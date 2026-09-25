@@ -268,6 +268,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
         battery = null,
         updatedAtMillis = null,
         sharing = sharing,
+        phone = Family.savedPhone(context),
     )).copy(sharing = sharing)
     val people = listOf(Person(meNow, isYou = true, youLabel = context.getString(R.string.you))) +
         members.sortedBy { it.name.lowercase() }.map { Person(it, isYou = false) }

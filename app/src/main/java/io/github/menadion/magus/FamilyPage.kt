@@ -1,5 +1,7 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.res.booleanResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalConfiguration
@@ -76,6 +78,8 @@ fun FamilyPage(
     var myName by remember { mutableStateOf(Family.savedName(context) ?: "") }
     var editFamilyName by remember { mutableStateOf(false) }
     var editMyName by remember { mutableStateOf(false) }
+    var myPhone by remember { mutableStateOf(Family.savedPhone(context)) }
+    var editMyPhone by remember { mutableStateOf(false) }
     var confirmLeave by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -204,6 +208,27 @@ fun FamilyPage(
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
                                 color = colors.onSurfaceVariant,
                             )
+                            // The number the family sees, or an invitation to add one. Tap to change.
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .clip(MaterialTheme.shapes.small)
+                                    .clickable { editMyPhone = true }
+                                    .padding(vertical = 4.dp),
+                            ) {
+                                Text(
+                                    myPhone?.let { Phone.display(it) } ?: stringResource(R.string.add_number),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.primary,
+                                )
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = stringResource(R.string.change_number),
+                                    tint = colors.primary,
+                                    modifier = Modifier.padding(start = 6.dp).size(16.dp),
+                                )
+                            }
                         }
                     }
                     Row(
@@ -277,6 +302,21 @@ fun FamilyPage(
         )
     }
 
+    if (editMyPhone) {
+        NumberDialog(
+            initial = myPhone,
+            busy = busy,
+            onDismiss = { editMyPhone = false },
+            onSave = { newPhone ->
+                attempt {
+                    Family.setPhone(context, newPhone)
+                    myPhone = newPhone
+                    editMyPhone = false
+                }
+            },
+        )
+    }
+
     if (confirmLeave) {
         AlertDialog(
             onDismissRequest = { if (!busy) confirmLeave = false },
@@ -307,6 +347,36 @@ fun FamilyPage(
             dismissButton = { TextButton(enabled = !busy, onClick = { confirmLeave = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
+}
+
+// The box for the phone number: "+63" fixed, ten digits typed, Save with the field empty removes it.
+@Composable
+private fun NumberDialog(initial: String?, busy: Boolean, onDismiss: () -> Unit, onSave: (String?) -> Unit) {
+    var digits by remember { mutableStateOf(Phone.digits(initial)) }
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.extraLarge,
+        title = { Text(stringResource(R.string.phone_number), style = MaterialTheme.typography.headlineMedium) },
+        text = {
+            OutlinedTextField(
+                value = digits,
+                onValueChange = { digits = Phone.clean(it) },
+                prefix = { Text(Phone.PREFIX + " ") },
+                supportingText = { Text(stringResource(R.string.phone_optional)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(enabled = !busy && digits != Phone.digits(initial), onClick = { onSave(Phone.store(digits)) }) {
+                Text(stringResource(if (busy) R.string.saving else R.string.save))
+            }
+        },
+        dismissButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 // One box for changing a name: the field, Cancel, Save.

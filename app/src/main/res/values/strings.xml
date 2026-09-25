@@ -106,6 +106,12 @@
     <string name="leave_family_q">Leave %1$s?</string>
     <string name="leave_family_text">Your family will stop seeing you. You can join again with the code %1$s.</string>
     <string name="leaving">Leaving…</string>
+    <string name="phone_number">Phone number</string>
+    <string name="phone_optional">Optional</string>
+    <string name="add_number">Add a number</string>
+    <string name="change_number">Change number</string>
+    <string name="call">Call</string>
+    <string name="text_message">Text</string>
 
     <!-- Keep Mogar running -->
     <string name="keep_running_intro">Some phones close Mogar to save battery. Then your family stops seeing where you are. Do these steps once.</string>
