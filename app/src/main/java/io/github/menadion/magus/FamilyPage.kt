@@ -173,12 +173,12 @@ fun FamilyPage(
                 modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                // The list hugs a short family and scrolls inside itself past about four people, so
-                // You and Leave stay within reach on any screen size.
+                // The list box is a fixed share of the screen, so You and Leave sit in the same place
+                // whether the family has one member or ten; past about four people it scrolls inside.
                 val listMax = (LocalConfiguration.current.screenHeightDp * 0.38f).dp
                 Group(if (people.size == 1) "Members" else "Members (${people.size})") {
                     LazyColumn(
-                        modifier = Modifier.heightIn(max = listMax),
+                        modifier = Modifier.height(listMax),
                         contentPadding = PaddingValues(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -194,7 +194,7 @@ fun FamilyPage(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Avatar(Markers.State.YOU, me?.letter ?: myName.take(1).uppercase(), 56.dp, photo = myPhoto)
+                        Avatar(me?.state(now) ?: Markers.State.YOU, me?.letter ?: myName.take(1).uppercase(), 56.dp, photo = myPhoto, you = true)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(myName, style = MaterialTheme.typography.titleMedium)
                             Text(

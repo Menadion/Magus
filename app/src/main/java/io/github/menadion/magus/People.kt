@@ -37,14 +37,18 @@ data class Person(val member: Member, val isYou: Boolean) {
     val name get() = if (isYou) "You" else member.name
     val letter get() = member.name.trim().take(1).uppercase()
 
-    fun state(now: Long): Markers.State =
-        if (isYou) Markers.State.YOU else Markers.State.SHARING.let { Markers.state(member, now) }
+    fun state(now: Long): Markers.State = when {
+        isYou && member.sharing -> Markers.State.YOU
+        isYou -> Markers.State.PAUSED
+        else -> Markers.state(member, now)
+    }
 }
 
 // Status line on the member card.
 @Composable
 fun cardStatus(person: Person, now: Long): Pair<String, Color> {
     val colors = MaterialTheme.colorScheme
+    if (person.isYou) return if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
     return when (person.state(now)) {
         Markers.State.YOU -> if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
         Markers.State.SHARING -> "Sharing" to colors.onSurfaceVariant
@@ -58,6 +62,7 @@ fun cardStatus(person: Person, now: Long): Pair<String, Color> {
 fun listStatus(person: Person, now: Long): Pair<String, Color> {
     val colors = MaterialTheme.colorScheme
     val ago = person.member.updatedAtMillis?.let { lastSeenText(it, now) }
+    if (person.isYou) return if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
     return when (person.state(now)) {
         Markers.State.YOU -> if (person.member.sharing) "Sharing ON" to colors.primary else "Sharing OFF" to colors.onSurfaceVariant
         Markers.State.SHARING -> (if (ago == null) "Sharing" else "Seen $ago") to colors.onSurfaceVariant
@@ -68,7 +73,14 @@ fun listStatus(person: Person, now: Long): Pair<String, Color> {
 
 // The round avatar used in the family row, the list and the card. Same rules as the map dot.
 @Composable
-fun Avatar(state: Markers.State, letter: String, size: Dp, modifier: Modifier = Modifier, photo: ByteArray? = null) {
+fun Avatar(
+    state: Markers.State,
+    letter: String,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    photo: ByteArray? = null,
+    you: Boolean = false, // my own circle keeps the white centre, even when paused
+) {
     val colors = MaterialTheme.colorScheme
     val letterSize = (size.value * 0.43f).sp
     val picture = remember(Photos.key(photo)) { Photos.decode(photo)?.asImageBitmap() }
@@ -98,7 +110,11 @@ fun Avatar(state: Markers.State, letter: String, size: Dp, modifier: Modifier = 
             Markers.State.SHARING, Markers.State.PAUSED -> {
                 val fill = if (state == Markers.State.SHARING) MogarColors.FamilyGreen else MogarColors.Paused
                 Box(modifier = Modifier.size(size).background(fill, CircleShape))
-                Text(letter, style = TextStyle(fontFamily = Figtree, fontSize = letterSize, fontWeight = FontWeight.W700), color = Color.White)
+                if (you) {
+                    Box(modifier = Modifier.size(size * 0.3f).background(Color.White, CircleShape))
+                } else {
+                    Text(letter, style = TextStyle(fontFamily = Figtree, fontSize = letterSize, fontWeight = FontWeight.W700), color = Color.White)
+                }
             }
             Markers.State.QUIET -> {
                 Box(modifier = Modifier.size(size).background(Color.White, CircleShape).border(4.dp, MogarColors.FamilyGreen, CircleShape))

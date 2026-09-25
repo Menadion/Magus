@@ -82,13 +82,13 @@ private fun PersonColumn(person: Person, now: Long, onPick: () -> Unit, modifier
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Avatar(state, person.letter, 44.dp, photo = person.member.photo)
+        Avatar(state, person.letter, 44.dp, photo = person.member.photo, you = person.isYou)
         Text(
             person.name,
             style = MaterialTheme.typography.labelMedium,
-            color = when (state) {
-                Markers.State.YOU -> colors.primary
-                Markers.State.PAUSED -> colors.onSurfaceVariant
+            color = when {
+                person.isYou -> colors.primary
+                state == Markers.State.PAUSED -> colors.onSurfaceVariant
                 else -> colors.onSurface
             },
             maxLines = 1,
@@ -151,7 +151,7 @@ fun PersonRow(person: Person, now: Long, onPick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Avatar(state, person.letter, 44.dp, photo = person.member.photo)
+            Avatar(state, person.letter, 44.dp, photo = person.member.photo, you = person.isYou)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     person.name,
@@ -161,14 +161,10 @@ fun PersonRow(person: Person, now: Long, onPick: () -> Unit) {
                 Text(status, style = MaterialTheme.typography.bodyMedium, color = statusColor)
             }
             person.member.battery?.let { battery ->
-                val low = battery < LOW_BATTERY
-                val tint = if (low) colors.error else colors.onSurfaceVariant
-                BatteryGlyph(tint)
-                Spacer(modifier = Modifier.width(2.dp))
                 Text(
                     "$battery%",
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (low) colors.error else colors.onSurface,
+                    color = if (battery < LOW_BATTERY) colors.error else MogarColors.FamilyGreen,
                 )
             }
             Icon(Icons.Default.LocationOn, contentDescription = null, tint = colors.primary, modifier = Modifier.size(24.dp))
