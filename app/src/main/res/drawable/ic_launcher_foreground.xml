@@ -1,23 +1,25 @@
-<!-- M's sketch, 2026-09-26, third idea: circles inside circles read as crescent moons. Every inner
-     circle (white gap, green, white gap, purple) touches the same point on the right, so each colour
-     and each gap tapers to nothing there, and the whole set stops 2.5 dp short of the icon's edge
-     ("a tad of padding", his words), leaving a thin blue rim on the right. The blue is the
-     background layer. Launchers show the middle 72 of these 108 dp. -->
+<!-- The Mogar logo, from Claude Design (design/handoff/LOGO.md, 2026-09-26): a pebble and its
+     ripple, flat. The pebble is a thick blue ring, the same idea as the circles that stand for
+     people in the app; under it a lighter blue curve is the ripple on the water. It also reads as a
+     head over shoulders. Converted by hand from design/logo/ic_launcher_foreground.svg; the whole
+     mark sits inside the 66 dp safe zone of the 108 dp canvas. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- ripple: a circular arc round the pebble's own centre (M's call 2026-09-26, over the
+         handoff's ellipse), radius 30 to the middle of the stroke, ends 20 degrees below the
+         horizontal. Pebble and ripple are one group, centred vertically: ring top at 29.15, arc
+         bottom at 78.9, both 24.85 from the canvas centre. -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M56,22.5 A31.5,31.5 0 1 1 56,85.5 A31.5,31.5 0 1 1 56,22.5 Z" />
+        android:strokeColor="#FF7C95E2"
+        android:strokeWidth="7.37"
+        android:strokeLineCap="butt"
+        android:pathData="M25.81,55.46 A30,30 0 0 0 82.19,55.46" />
+    <!-- pebble -->
     <path
-        android:fillColor="#FF26803F"
-        android:pathData="M57.25,23.75 A30.25,30.25 0 1 1 57.25,84.25 A30.25,30.25 0 1 1 57.25,23.75 Z" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M63.25,29.75 A24.25,24.25 0 1 1 63.25,78.25 A24.25,24.25 0 1 1 63.25,29.75 Z" />
-    <path
-        android:fillColor="#FF7B42C8"
-        android:pathData="M64.5,31 A23,23 0 1 1 64.5,77 A23,23 0 1 1 64.5,31 Z" />
+        android:strokeColor="#FF2F55C4"
+        android:strokeWidth="7.37"
+        android:pathData="M54,32.83 A12.37,12.37 0 1 1 54,57.57 A12.37,12.37 0 1 1 54,32.83 Z" />
 </vector>

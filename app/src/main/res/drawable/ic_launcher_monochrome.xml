@@ -1,12 +1,17 @@
-<!-- Themed icons (Android 13 and up) tint one shape: the same crescents as one even-odd path,
-     drawn inside the 66 dp safe zone. -->
+<!-- Themed icons (Android 13 and up): the same two shapes in one colour. They never overlap, so a
+     plain stroke works. From design/logo/ic_launcher_monochrome.svg. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FF000000"
-        android:fillType="evenOdd"
-        android:pathData="M54,21 A33,33 0 1 1 54,87 A33,33 0 1 1 54,21 Z M56,25 A29,29 0 1 1 56,83 A29,29 0 1 1 56,25 Z M57.5,26.5 A27.5,27.5 0 1 1 57.5,81.5 A27.5,27.5 0 1 1 57.5,26.5 Z M63,32 A22,22 0 1 1 63,76 A22,22 0 1 1 63,32 Z M64.5,33.5 A20.5,20.5 0 1 1 64.5,74.5 A20.5,20.5 0 1 1 64.5,33.5 Z" />
+        android:strokeColor="#FF000000"
+        android:strokeWidth="7.37"
+        android:strokeLineCap="butt"
+        android:pathData="M25.81,55.46 A30,30 0 0 0 82.19,55.46" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="7.37"
+        android:pathData="M54,32.83 A12.37,12.37 0 1 1 54,57.57 A12.37,12.37 0 1 1 54,32.83 Z" />
 </vector>
