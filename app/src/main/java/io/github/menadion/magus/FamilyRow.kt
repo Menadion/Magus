@@ -1,5 +1,8 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -121,8 +124,16 @@ fun FamilyListSheet(people: List<Person>, now: Long, onPick: (String) -> Unit, o
                     Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close list")
                 }
             }
-            for (person in people) {
-                PersonRow(person, now, onPick = { onPick(person.uid) })
+            // The rows scroll inside the sheet past half the screen, so a big family never pushes
+            // the sheet off the top.
+            val listMax = (LocalConfiguration.current.screenHeightDp * 0.5f).dp
+            LazyColumn(
+                modifier = Modifier.heightIn(max = listMax),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(people, key = { it.uid }) { person ->
+                    PersonRow(person, now, onPick = { onPick(person.uid) })
+                }
             }
             Text(
                 "Tap a name to see them on the map",
