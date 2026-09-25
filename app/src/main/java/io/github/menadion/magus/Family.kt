@@ -104,6 +104,34 @@ object Family {
         save(context, name, code, found.getString("name"))
     }
 
+    // Changes my name, on this phone and for everyone else's map.
+    suspend fun rename(context: Context, name: String) {
+        val code = savedCode(context) ?: return
+        val uid = myId()
+        db.collection("families").document(code).collection("members").document(uid)
+            .set(mapOf("name" to name), SetOptions.merge()).await()
+        prefs(context).edit().putString("name", name).apply()
+    }
+
+    // Changes the family's name for everyone. Anyone in the family may; the rules check membership.
+    suspend fun renameFamily(context: Context, name: String) {
+        val code = savedCode(context) ?: return
+        db.collection("families").document(code).update("name", name).await()
+        prefs(context).edit().putString("familyName", name).apply()
+    }
+
+    // Follows the family's name, so a rename by someone else shows up here too.
+    fun listenFamilyName(context: Context, onChange: (String) -> Unit): ListenerRegistration? {
+        val code = savedCode(context) ?: return null
+        return db.collection("families").document(code).addSnapshotListener { snapshot, _ ->
+            val name = snapshot?.getString("name") ?: return@addSnapshotListener
+            if (name != savedFamilyName(context)) {
+                prefs(context).edit().putString("familyName", name).apply()
+                onChange(name)
+            }
+        }
+    }
+
     // Leaves the family: my record goes from Firebase, this phone forgets the family. My name stays
     // for next time, and sharing is back on for whatever family comes next.
     suspend fun leave(context: Context) {

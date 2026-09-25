@@ -24,6 +24,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
@@ -160,6 +161,8 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     var selectedUid by remember { mutableStateOf<String?>(null) }
     var showKeepRunning by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showFamilyPage by remember { mutableStateOf(false) }
+    var familyName by remember { mutableStateOf(Family.savedFamilyName(context)) }
     var notice by remember { mutableStateOf<String?>(null) }
     var me by remember { mutableStateOf<Member?>(null) }
     var showList by remember { mutableStateOf(false) }
@@ -183,7 +186,11 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             members = list.filter { it.uid != myUid }
             me = list.find { it.uid == myUid }
         }
-        onDispose { registration?.remove() }
+        val nameWatch = Family.listenFamilyName(context) { familyName = it }
+        onDispose {
+            registration?.remove()
+            nameWatch?.remove()
+        }
     }
 
     // The toggle notice fades after a moment.
@@ -290,6 +297,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             Box(modifier = Modifier.onSizeChanged { topHeight = it.height }) {
                 FamilyStrip(
                     code = code,
+                    familyName = familyName,
                     sharing = sharing,
                     onToggle = {
                         sharing = !sharing
@@ -299,6 +307,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                         else "Your family won't be able to see you"
                     },
                     onSettings = { showSettings = true },
+                    onFamily = { showFamilyPage = true },
                 )
             }
             AnimatedVisibility(visible = selected != null) {
@@ -323,16 +332,29 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             )
         }
 
+        if (showFamilyPage) {
+            BackHandler { showFamilyPage = false }
+            FamilyPage(
+                code = code,
+                people = people,
+                now = now,
+                onBack = { showFamilyPage = false },
+                onPick = {
+                    showFamilyPage = false
+                    selectedUid = it
+                },
+                onLeft = {
+                    showFamilyPage = false
+                    onLeft()
+                },
+            )
+        }
+
         if (showSettings) {
             BackHandler { showSettings = false }
             SettingsScreen(
-                code = code,
                 onBack = { showSettings = false },
                 onKeepRunning = { showKeepRunning = true },
-                onLeft = {
-                    showSettings = false
-                    onLeft()
-                },
             )
         }
 
@@ -704,8 +726,14 @@ private fun showFamily(context: Context, style: Style, members: List<Member>, no
 // The floating top card, one row: family name and code on the left, the compact Sharing pill and
 // the gear on the right. M's change from the handoff's two-row card (2026-09-25): it took too much map.
 @Composable
-fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings: () -> Unit) {
-    val context = LocalContext.current
+fun FamilyStrip(
+    code: String,
+    familyName: String?,
+    sharing: Boolean,
+    onToggle: () -> Unit,
+    onSettings: () -> Unit,
+    onFamily: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
 
     Surface(
@@ -722,9 +750,17 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            // The name is the door to the family page, like a chat's header in Messenger.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClick = onFamily)
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
                 Text(
-                    Family.familyLabel(context),
+                    "${familyName ?: "your"} Family",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                 )

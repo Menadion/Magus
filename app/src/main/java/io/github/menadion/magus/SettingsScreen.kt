@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -36,139 +35,65 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 
 // Settings, opened by the gear on the map. A full screen. Spec: HANDOFF.md section 7.
-// Change name gets a row here when it is built.
+// Settings, opened by the gear: the app's own rows, and the version at the bottom. Everything about
+// the family and you lives on the family page (FamilyPage), opened from the family name on the map.
 @Composable
-fun SettingsScreen(code: String, onBack: () -> Unit, onKeepRunning: () -> Unit, onLeft: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
-    val scope = rememberCoroutineScope()
     var showAbout by remember { mutableStateOf(false) }
-    var confirmLeave by remember { mutableStateOf(false) }
-    var leaving by remember { mutableStateOf(false) }
-    var problem by remember { mutableStateOf<String?>(null) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = colors.surface) {
-        Column(
-            modifier = Modifier
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState()),
-        ) {
-            Row(
-                modifier = Modifier.height(64.dp).padding(start = 4.dp, end = 16.dp, top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to map")
+        Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Row(
+                    modifier = Modifier.height(64.dp).padding(start = 4.dp, end = 16.dp, top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to map")
+                    }
+                    Text("Settings", style = MaterialTheme.typography.headlineMedium)
                 }
-                Text("Settings", style = MaterialTheme.typography.headlineMedium)
-            }
 
-            Column(
-                modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                Group("You") {
-                    ValueRow("Your name", Family.savedName(context) ?: "?")
-                }
-                Group("Family") {
-                    ValueRow("Family name", Family.familyLabel(context))
-                    Divider()
-                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Family code", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight), color = colors.onSurfaceVariant)
-                        Text(code, style = MaterialTheme.typography.displayMedium)
-                        Text(
-                            "Give this code to family so they can join.",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight),
-                            color = colors.onSurfaceVariant,
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 48.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    Group("App") {
+                        NavRow(
+                            title = "Keep Mogar running",
+                            subtitle = "Stop your phone from closing Mogar",
+                            icon = { Icon(Icons.Default.PlayArrow, contentDescription = null, tint = colors.primary) },
+                            onClick = onKeepRunning,
+                        )
+                        Divider()
+                        NavRow(
+                            title = "About the map",
+                            subtitle = "Map credits",
+                            icon = { Icon(Icons.Default.Info, contentDescription = null, tint = colors.primary) },
+                            onClick = { showAbout = true },
                         )
                     }
                 }
-                Group("App") {
-                    NavRow(
-                        title = "Keep Mogar running",
-                        subtitle = "Stop your phone from closing Mogar",
-                        icon = { Icon(Icons.Default.PlayArrow, contentDescription = null, tint = colors.primary) },
-                        onClick = onKeepRunning,
-                    )
-                    Divider()
-                    NavRow(
-                        title = "About the map",
-                        subtitle = "Map credits",
-                        icon = { Icon(Icons.Default.Info, contentDescription = null, tint = colors.primary) },
-                        onClick = { showAbout = true },
-                    )
-                }
-                Text(
-                    "Mogar ${Diagnostics.appVersion(context)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-                Group("Leave") {
-                    NavRow(
-                        title = "Leave family",
-                        subtitle = "Your family stops seeing you",
-                        icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = colors.error) },
-                        iconBackground = colors.surfaceContainerHigh,
-                        titleColor = colors.error,
-                        onClick = { confirmLeave = true },
-                    )
-                }
-                problem?.let { Text(it, color = colors.error, modifier = Modifier.padding(horizontal = 8.dp)) }
             }
+            Text(
+                "Mogar ${Diagnostics.appVersion(context)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+            )
         }
-    }
-
-    if (confirmLeave) {
-        AlertDialog(
-            onDismissRequest = { if (!leaving) confirmLeave = false },
-            containerColor = MogarColors.Dialog,
-            shape = MaterialTheme.shapes.extraLarge,
-            icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = colors.error) },
-            title = { Text("Leave ${Family.familyLabel(context)}?", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center) },
-            text = {
-                Text(
-                    "Your family will stop seeing you. You can join again with the code $code.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = colors.onSurfaceVariant,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = !leaving,
-                    onClick = {
-                        leaving = true
-                        problem = null
-                        scope.launch {
-                            try {
-                                ShareService.stop(context)
-                                Family.leave(context)
-                                confirmLeave = false
-                                onLeft()
-                            } catch (e: Exception) {
-                                problem = e.message ?: "Couldn't leave. Check your connection and try again."
-                                confirmLeave = false
-                            } finally {
-                                leaving = false
-                            }
-                        }
-                    },
-                ) { Text(if (leaving) "Leaving\u2026" else "Leave", color = colors.error) }
-            },
-            dismissButton = { TextButton(enabled = !leaving, onClick = { confirmLeave = false }) { Text("Cancel") } },
-        )
     }
 
     if (showAbout) {
@@ -182,7 +107,7 @@ fun SettingsScreen(code: String, onBack: () -> Unit, onKeepRunning: () -> Unit, 
 }
 
 @Composable
-private fun Group(label: String, content: @Composable () -> Unit) {
+fun Group(label: String, content: @Composable () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = colors.primary, modifier = Modifier.padding(start = 8.dp))
@@ -193,7 +118,7 @@ private fun Group(label: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ValueRow(label: String, value: String) {
+fun ValueRow(label: String, value: String) {
     val colors = MaterialTheme.colorScheme
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = MaterialTheme.typography.bodySmall.fontWeight), color = colors.onSurfaceVariant)
@@ -202,12 +127,12 @@ private fun ValueRow(label: String, value: String) {
 }
 
 @Composable
-private fun Divider() {
+fun Divider() {
     HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp), thickness = 1.dp, color = MaterialTheme.colorScheme.surfaceContainerHigh)
 }
 
 @Composable
-private fun NavRow(
+fun NavRow(
     title: String,
     subtitle: String,
     icon: @Composable () -> Unit,

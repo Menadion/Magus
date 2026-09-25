@@ -19,6 +19,9 @@ service cloud.firestore {
       // "get" is one family by its code. Listing every family is not allowed.
       allow get: if signedIn();
       allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      // Anyone in the family can change its name, and only its name.
+      allow update: if signedIn() && isMember(code)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']);
 
       match /members/{uid} {
         allow read: if signedIn() && isMember(code);

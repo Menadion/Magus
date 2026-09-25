@@ -136,7 +136,7 @@ fun FamilyListSheet(people: List<Person>, now: Long, onPick: (String) -> Unit, o
 }
 
 @Composable
-private fun PersonRow(person: Person, now: Long, onPick: () -> Unit) {
+fun PersonRow(person: Person, now: Long, onPick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val state = person.state(now)
     val (status, statusColor) = listStatus(person, now)
