@@ -1,5 +1,12 @@
 package io.github.menadion.magus
 
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,11 +68,29 @@ fun listStatus(person: Person, now: Long): Pair<String, Color> {
 
 // The round avatar used in the family row, the list and the card. Same rules as the map dot.
 @Composable
-fun Avatar(state: Markers.State, letter: String, size: Dp, modifier: Modifier = Modifier) {
+fun Avatar(state: Markers.State, letter: String, size: Dp, modifier: Modifier = Modifier, photo: ByteArray? = null) {
     val colors = MaterialTheme.colorScheme
     val letterSize = (size.value * 0.43f).sp
+    val picture = remember(Photos.key(photo)) { Photos.decode(photo)?.asImageBitmap() }
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
-        when (state) {
+        if (picture != null) {
+            // The picture inside a ring in the state's colour; paused goes grey.
+            val ring = when (state) {
+                Markers.State.YOU -> colors.primary
+                Markers.State.PAUSED -> MogarColors.Paused
+                else -> MogarColors.FamilyGreen
+            }
+            Image(
+                bitmap = picture,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                colorFilter = if (state == Markers.State.PAUSED) ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) else null,
+                modifier = Modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .border(if (state == Markers.State.QUIET) 4.dp else 3.dp, ring, CircleShape),
+            )
+        } else when (state) {
             Markers.State.YOU -> {
                 Box(modifier = Modifier.size(size).background(colors.primary, CircleShape))
                 Box(modifier = Modifier.size(size * 0.3f).background(colors.onPrimary, CircleShape))

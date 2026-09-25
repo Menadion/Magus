@@ -82,7 +82,7 @@ private fun PersonColumn(person: Person, now: Long, onPick: () -> Unit, modifier
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Avatar(state, person.letter, 44.dp)
+        Avatar(state, person.letter, 44.dp, photo = person.member.photo)
         Text(
             person.name,
             style = MaterialTheme.typography.labelMedium,
@@ -151,7 +151,7 @@ fun PersonRow(person: Person, now: Long, onPick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Avatar(state, person.letter, 44.dp)
+            Avatar(state, person.letter, 44.dp, photo = person.member.photo)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     person.name,

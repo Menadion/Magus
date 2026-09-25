@@ -1,5 +1,7 @@
 package io.github.menadion.magus
 
+import com.google.firebase.firestore.Blob
+import android.util.Base64
 import android.content.Context
 import android.location.Location
 import android.os.BatteryManager
@@ -24,6 +26,7 @@ data class Member(
     val updatedAtMillis: Long?,
     val sharing: Boolean,
     val diag: Map<String, Any?>? = null, // see Diagnostics
+    val photo: ByteArray? = null, // small JPEG, see Photos
 )
 
 // Everything the app knows about "my family": what's saved on this phone, and what's in Firebase.
@@ -113,6 +116,26 @@ object Family {
         prefs(context).edit().putString("name", name).apply()
     }
 
+    // Sets or removes my profile picture, for everyone's map and this phone's own dot.
+    suspend fun setPhoto(context: Context, bytes: ByteArray?) {
+        val code = savedCode(context) ?: return
+        val uid = myId()
+        val value: Any = if (bytes == null) FieldValue.delete() else Blob.fromBytes(bytes)
+        db.collection("families").document(code).collection("members").document(uid)
+            .set(mapOf("photo" to value), SetOptions.merge()).await()
+        cachePhoto(context, bytes)
+    }
+
+    // My own dot is drawn outside Compose, so it reads the picture from here.
+    fun savedPhoto(context: Context): ByteArray? =
+        prefs(context).getString("photo", null)?.let { Base64.decode(it, Base64.NO_WRAP) }
+
+    fun cachePhoto(context: Context, bytes: ByteArray?) {
+        val editor = prefs(context).edit()
+        if (bytes == null) editor.remove("photo") else editor.putString("photo", Base64.encodeToString(bytes, Base64.NO_WRAP))
+        editor.apply()
+    }
+
     // Changes the family's name for everyone. Only its creator may; the rules check that too.
     suspend fun renameFamily(context: Context, name: String) {
         val code = savedCode(context) ?: return
@@ -189,6 +212,7 @@ object Family {
                         updatedAtMillis = doc.getTimestamp("updatedAt")?.toDate()?.time,
                         sharing = doc.getBoolean("sharing") ?: true,
                         diag = (doc.get("diag") as? Map<*, *>)?.mapKeys { it.key.toString() },
+                        photo = doc.getBlob("photo")?.toBytes(),
                     )
                 }
                 onChange(members)

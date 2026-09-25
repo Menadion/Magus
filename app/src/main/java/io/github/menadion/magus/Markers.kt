@@ -1,5 +1,10 @@
 package io.github.menadion.magus
 
+import android.graphics.Shader
+import android.graphics.Matrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.ColorMatrix
+import android.graphics.BitmapShader
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -36,11 +41,19 @@ object Markers {
     }
 
     // The id the map caches the picture under. Same inputs, same picture.
-    fun id(state: State, name: String, selected: Boolean, you: Boolean = false) =
-        "marker:" + state.name + ":" + (if (selected) "sel:" else "") + (if (you) "you:" else "") + name
+    fun id(state: State, name: String, selected: Boolean, you: Boolean = false, photo: ByteArray? = null) =
+        "marker:" + state.name + ":" + (if (selected) "sel:" else "") + (if (you) "you:" else "") +
+            Photos.key(photo) + ":" + name
 
     // you: this is my own dot, so it keeps the white centre even while paused.
-    fun draw(context: Context, state: State, name: String, selected: Boolean, you: Boolean = false): Bitmap {
+    fun draw(
+        context: Context,
+        state: State,
+        name: String,
+        selected: Boolean,
+        you: Boolean = false,
+        photo: ByteArray? = null,
+    ): Bitmap {
         val metrics = context.resources.displayMetrics
         val density = metrics.density
         fun dp(v: Float) = v * density
@@ -135,8 +148,25 @@ object Markers {
             canvas.drawCircle(cx, cy, innerRadius - dp(2f), ring)
         }
 
-        // Middle: a white centre for you, the first letter for everyone else.
-        if (whiteCentre) {
+        // Middle: the picture if there is one, else a white centre for you, or the first letter.
+        val picture = Photos.decode(photo)
+        if (picture != null) {
+            val ringWidth = if (state == State.QUIET) dp(4f) else dp(2.5f)
+            val radius = innerRadius - ringWidth
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = BitmapShader(picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply {
+                    val scale = radius * 2 / picture.width
+                    setLocalMatrix(Matrix().apply {
+                        setScale(scale, scale)
+                        postTranslate(cx - radius, cy - radius)
+                    })
+                }
+                if (state == State.PAUSED) {
+                    colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
+                }
+            }
+            canvas.drawCircle(cx, cy, radius, paint)
+        } else if (whiteCentre) {
             plain.color = WHITE
             canvas.drawCircle(cx, cy, dp(6f), plain)
         } else {

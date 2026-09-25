@@ -1,5 +1,7 @@
 package io.github.menadion.magus
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -186,6 +188,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
         val registration = Family.listen(context) { list ->
             members = list.filter { it.uid != myUid }
             me = list.find { it.uid == myUid }
+            me?.let { Family.cachePhoto(context, it.photo) }
         }
         val nameWatch = Family.listenFamily(context) { name, createdBy ->
             if (name != null) familyName = name
@@ -505,7 +508,7 @@ fun FamilyMap(
     }
 
     // My own dot follows my sharing switch: blue, or grey while paused.
-    LaunchedEffect(map, style, hasLocation, sharing) {
+    LaunchedEffect(map, style, hasLocation, sharing, Photos.key(me?.photo)) {
         val s = style ?: return@LaunchedEffect
         val component = map?.locationComponent ?: return@LaunchedEffect
         if (!component.isLocationComponentActivated) return@LaunchedEffect
@@ -674,9 +677,10 @@ private fun markerImage(
     name: String,
     selected: Boolean,
     you: Boolean = false,
+    photo: ByteArray? = null,
 ): String {
-    val id = Markers.id(state, name, selected, you)
-    if (style.getImage(id) == null) style.addImage(id, Markers.draw(context, state, name, selected, you))
+    val id = Markers.id(state, name, selected, you, photo)
+    if (style.getImage(id) == null) style.addImage(id, Markers.draw(context, state, name, selected, you, photo))
     return id
 }
 
@@ -684,7 +688,10 @@ private fun markerImage(
 private fun drawMe(context: Context, style: Style, location: Location, sharing: Boolean) {
     val state = if (sharing) Markers.State.YOU else Markers.State.PAUSED
     val me = Feature.fromGeometry(Point.fromLngLat(location.longitude, location.latitude)).apply {
-        addStringProperty("icon", markerImage(context, style, state, "You", selected = false, you = true))
+        addStringProperty(
+            "icon",
+            markerImage(context, style, state, "You", selected = false, you = true, photo = Family.savedPhoto(context)),
+        )
     }
     style.getSourceAs<GeoJsonSource>(ME_SOURCE)?.setGeoJson(me)
 }
@@ -722,7 +729,10 @@ private fun showFamily(context: Context, style: Style, members: List<Member>, no
             addStringProperty("state", member.dotState(now))
             addStringProperty(
                 "icon",
-                markerImage(context, style, Markers.state(member, now), member.name, member.uid == selectedUid),
+                markerImage(
+                    context, style, Markers.state(member, now), member.name, member.uid == selectedUid,
+                    photo = member.photo,
+                ),
             )
         }
     }
@@ -777,6 +787,13 @@ fun FamilyStrip(
                     color = colors.onSurfaceVariant,
                 )
             }
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .width(1.dp)
+                    .height(28.dp)
+                    .background(colors.outlineVariant),
+            )
             SharingDot(sharing = sharing, onToggle = onToggle)
             IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
                 Icon(

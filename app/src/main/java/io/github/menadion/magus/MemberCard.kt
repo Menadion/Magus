@@ -93,7 +93,7 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Avatar(state, person.letter, 56.dp)
+                Avatar(state, person.letter, 56.dp, photo = person.member.photo)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(person.name, style = MaterialTheme.typography.headlineLarge)
                     Text(status, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.bodyMedium.fontWeight), color = statusColor)

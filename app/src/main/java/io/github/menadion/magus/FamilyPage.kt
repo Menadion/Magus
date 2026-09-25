@@ -1,5 +1,10 @@
 package io.github.menadion.magus
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.compose.rememberLauncherForActivityResult
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -69,6 +74,7 @@ fun FamilyPage(
     var busy by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<String?>(null) }
     val me = people.firstOrNull { it.isYou }
+    val myPhoto = me?.member?.photo
 
     fun attempt(action: suspend () -> Unit) {
         busy = true
@@ -80,6 +86,16 @@ fun FamilyPage(
                 problem = e.message ?: "Something went wrong. Check your connection and try again."
             } finally {
                 busy = false
+            }
+        }
+    }
+
+    // Android's own picker: no gallery permission needed. The photo is shrunk before it is sent.
+    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            attempt {
+                val bytes = withContext(Dispatchers.IO) { Photos.shrink(context, uri) }
+                Family.setPhoto(context, bytes)
             }
         }
     }
@@ -164,7 +180,7 @@ fun FamilyPage(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Avatar(Markers.State.YOU, me?.letter ?: myName.take(1).uppercase(), 56.dp)
+                        Avatar(Markers.State.YOU, me?.letter ?: myName.take(1).uppercase(), 56.dp, photo = myPhoto)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(myName, style = MaterialTheme.typography.titleMedium)
                             Text(
@@ -179,7 +195,17 @@ fun FamilyPage(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         FilledTonalButton(onClick = { editMyName = true }, enabled = !busy) { Text("Change name") }
-                        FilledTonalButton(onClick = { /* pictures come in the next build */ }, enabled = false) { Text("Change picture") }
+                        FilledTonalButton(
+                            onClick = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                            enabled = !busy,
+                        ) { Text("Change picture") }
+                    }
+                    if (myPhoto != null) {
+                        TextButton(
+                            onClick = { attempt { Family.setPhoto(context, null) } },
+                            enabled = !busy,
+                            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
+                        ) { Text("Remove picture", color = colors.error) }
                     }
                 }
 
