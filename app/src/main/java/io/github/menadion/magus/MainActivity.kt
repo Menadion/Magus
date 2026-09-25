@@ -20,25 +20,21 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -159,6 +155,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     var selectedUid by remember { mutableStateOf<String?>(null) }
     var showKeepRunning by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var notice by remember { mutableStateOf<String?>(null) }
     var me by remember { mutableStateOf<Member?>(null) }
     var showList by remember { mutableStateOf(false) }
     // Heights of the floating cards, so the camera can aim at the gap between them.
@@ -182,6 +179,14 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             me = list.find { it.uid == myUid }
         }
         onDispose { registration?.remove() }
+    }
+
+    // The toggle notice fades after a moment.
+    LaunchedEffect(notice) {
+        if (notice != null) {
+            delay(2800)
+            notice = null
+        }
     }
 
     // Recheck every 30 seconds, so a dot goes hollow even when no new update arrives.
@@ -285,6 +290,8 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                         sharing = !sharing
                         Family.setSharing(context, sharing)
                         if (sharing) startSharingSteps() else ShareService.stop(context)
+                        notice = if (sharing) "Your location is being shared with your family"
+                        else "Your family won't be able to see you"
                     },
                     onSettings = { showSettings = true },
                 )
@@ -296,6 +303,8 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                 )
             }
         }
+
+        SharingNotice(text = notice, modifier = Modifier.align(Alignment.Center))
 
         if (showList) {
             FamilyListSheet(
@@ -720,7 +729,7 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings
                     )
                 }
             }
-            SharingPill(sharing = sharing, onToggle = onToggle)
+            SharingDot(sharing = sharing, onToggle = onToggle)
             IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
                 Icon(
                     Icons.Default.Settings,
@@ -733,62 +742,47 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings
     }
 }
 
-// The sharing switch as a compact pill: pin, ON or OFF, and the switch. ON is dark (primary), OFF is
-// light with an outline, so the state still reads at a glance and not only by colour.
+// The sharing switch as one dot beside the gear: blue with a white centre while sharing, grey when
+// off. No label; the notice in the middle of the map says what just happened. M's call, 2026-09-25.
 @Composable
-fun SharingPill(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+fun SharingDot(sharing: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    Surface(
+    Box(
         modifier = modifier
-            .heightIn(min = 44.dp)
-            .toggleable(value = sharing, role = Role.Switch, onValueChange = { onToggle() }),
-        shape = CircleShape,
-        color = if (sharing) colors.primary else colors.surfaceContainerHigh,
-        contentColor = if (sharing) colors.onPrimary else colors.onSurface,
-        border = if (sharing) null else BorderStroke(2.dp, colors.outline),
+            .size(48.dp)
+            .toggleable(value = sharing, role = Role.Switch, onValueChange = { onToggle() })
+            .semantics { contentDescription = if (sharing) "Sharing on" else "Sharing off" },
+        contentAlignment = Alignment.Center,
     ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .background(if (sharing) colors.primary else MogarColors.Paused, CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
-            PinIcon(off = !sharing)
-            Text(if (sharing) "ON" else "OFF", style = MaterialTheme.typography.titleSmall)
-            Switch(
-                checked = sharing,
-                onCheckedChange = null, // the whole pill is the switch
-                thumbContent = if (sharing) {
-                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
-                } else {
-                    null
-                },
-                colors = SwitchDefaults.colors(
-                    checkedTrackColor = colors.onPrimary,
-                    checkedBorderColor = colors.onPrimary,
-                    checkedThumbColor = colors.primary,
-                    checkedIconColor = colors.onPrimary,
-                ),
-            )
+            if (sharing) Box(modifier = Modifier.size(9.dp).background(colors.onPrimary, CircleShape))
         }
     }
 }
 
-// A location pin, with a slash through it when sharing is off.
+// The white notice in the middle of the map after a toggle, gone again after a moment.
 @Composable
-private fun PinIcon(off: Boolean) {
-    val slash = LocalContentColor.current
-    Box(modifier = Modifier.size(24.dp)) {
-        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(24.dp))
-        if (off) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                drawLine(
-                    color = slash,
-                    start = Offset(size.width * 0.15f, size.height * 0.15f),
-                    end = Offset(size.width * 0.85f, size.height * 0.85f),
-                    strokeWidth = 2.5.dp.toPx(),
-                    cap = StrokeCap.Round,
-                )
-            }
+fun SharingNotice(text: String?, modifier: Modifier = Modifier) {
+    var shown by remember { mutableStateOf(text) }
+    if (text != null) shown = text
+    AnimatedVisibility(visible = text != null, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            shadowElevation = 6.dp,
+            modifier = Modifier.padding(horizontal = 32.dp),
+        ) {
+            Text(
+                shown ?: "",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.bodyMedium.fontWeight),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            )
         }
     }
 }
