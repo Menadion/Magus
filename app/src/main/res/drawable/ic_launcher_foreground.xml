@@ -1,15 +1,24 @@
-<!-- M's sketch, 2026-09-26: a blue disc (the background layer) with a green disc lower-right and a
-     clear ring between them. Launchers show the middle 72 of these 108 dp, so the ring's edge just
-     reaches the icon's edge along the diagonal, as in the sketch. -->
+<!-- M's sketch, 2026-09-26 (second idea): circles inside circles, each stepped to the right, blue
+     then green then purple, with a clear ring between each. The blue is the background layer.
+     Launchers show the middle 72 of these 108 dp, so the green ring's edge just reaches the icon's
+     edge on the right, as drawn. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- ring around the green -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M66,47.5 A18.5,18.5 0 1 1 66,84.5 A18.5,18.5 0 1 1 66,47.5 Z" />
+        android:pathData="M62,27 A27,27 0 1 1 62,81 A27,27 0 1 1 62,27 Z" />
     <path
         android:fillColor="#FF26803F"
-        android:pathData="M66,51 A15,15 0 1 1 66,81 A15,15 0 1 1 66,51 Z" />
+        android:pathData="M62,30 A24,24 0 1 1 62,78 A24,24 0 1 1 62,30 Z" />
+    <!-- ring around the purple -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M70,39 A15,15 0 1 1 70,69 A15,15 0 1 1 70,39 Z" />
+    <path
+        android:fillColor="#FF7B42C8"
+        android:pathData="M70,42 A12,12 0 1 1 70,66 A12,12 0 1 1 70,42 Z" />
 </vector>
