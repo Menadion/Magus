@@ -19,10 +19,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +35,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
@@ -135,6 +146,7 @@ object KeepRunning {
 @Composable
 fun KeepRunningScreen(onDone: () -> Unit) {
     val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     // Re-read step 1 each time they come back from the settings page.
@@ -148,20 +160,27 @@ fun KeepRunningScreen(onDone: () -> Unit) {
     val neverPaused = remember(checks) { KeepRunning.neverPaused(context) }
     var brandDone by remember { mutableStateOf(KeepRunning.brandStepDone(context)) }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    // Spec: HANDOFF.md section 9. Done steps go tonal with a green tick; the rest stay white with a blue edge.
+    Surface(modifier = Modifier.fillMaxSize(), color = colors.surface) {
         Column(
             modifier = Modifier
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Keep Mogar running", style = MaterialTheme.typography.headlineMedium)
+            Text(
+                "Keep Mogar running",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
             Text(
                 "Some phones close Mogar to save battery. Then your family stops seeing where you are. " +
                     "Do these steps once.",
                 style = MaterialTheme.typography.bodyLarge,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
             )
 
             StepCard(
@@ -196,7 +215,7 @@ fun KeepRunningScreen(onDone: () -> Unit) {
                     title = "Samsung: don't put Mogar to sleep",
                     detail = "Tap the button. Under Background usage limits, turn off " +
                         "\"Put unused apps to sleep\". Then open Never sleeping apps and add Mogar. " +
-                        "On an older Samsung this is under Device care, Battery, then the ⋮ menu.",
+                        "On an older Samsung this is under Device care, Battery, then the \u22ee menu.",
                     done = brandDone,
                     onDoneChange = { brandDone = it; KeepRunning.setBrandStepDone(context, it) },
                 )
@@ -215,7 +234,12 @@ fun KeepRunningScreen(onDone: () -> Unit) {
                 )
             }
 
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onDone,
+                shape = CircleShape,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).height(56.dp),
+            ) { Text("Done", style = MaterialTheme.typography.titleSmall) }
         }
     }
 }
@@ -231,9 +255,9 @@ private fun BrandStep(title: String, detail: String, done: Boolean, onDoneChange
         buttonText = "Open settings",
         onButton = { KeepRunning.openBrandPage(context) },
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 48.dp)) {
             Checkbox(checked = done, onCheckedChange = onDoneChange)
-            Text("I did this")
+            Text("I did this", style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
@@ -248,14 +272,42 @@ private fun StepCard(
     onButton: () -> Unit,
     extra: @Composable () -> Unit = {},
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                (if (done) "✓ " else "$number. ") + title,
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(detail, style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = onButton) { Text(buttonText) }
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = if (done) colors.surfaceContainerHigh else colors.surfaceContainerLowest,
+        border = if (done) null else BorderStroke(2.dp, colors.primary),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .background(if (done) MogarColors.FamilyGreen else colors.primaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (done) {
+                        Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(20.dp))
+                    } else {
+                        Text("$number", style = MaterialTheme.typography.titleSmall, color = colors.onPrimaryContainer)
+                    }
+                }
+                Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            }
+            Text(detail, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant)
+            if (done) {
+                FilledTonalButton(onClick = onButton, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(buttonText, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.labelLarge.fontWeight))
+                }
+            } else {
+                Button(onClick = onButton, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(buttonText, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = MaterialTheme.typography.labelLarge.fontWeight))
+                }
+            }
             extra()
         }
     }

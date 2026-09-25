@@ -1,8 +1,6 @@
 package io.github.menadion.magus
 
 import android.Manifest
-import android.net.Uri
-import android.content.Intent
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
@@ -51,8 +49,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -161,6 +157,7 @@ fun FamilyScreen(code: String) {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     var selectedUid by remember { mutableStateOf<String?>(null) }
     var showKeepRunning by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var me by remember { mutableStateOf<Member?>(null) }
     var showList by remember { mutableStateOf(false) }
     // Heights of the floating cards, so the camera can aim at the gap between them.
@@ -288,7 +285,7 @@ fun FamilyScreen(code: String) {
                         Family.setSharing(context, sharing)
                         if (sharing) startSharingSteps() else ShareService.stop(context)
                     },
-                    onKeepRunning = { showKeepRunning = true },
+                    onSettings = { showSettings = true },
                 )
             }
             AnimatedVisibility(visible = selected != null) {
@@ -308,6 +305,15 @@ fun FamilyScreen(code: String) {
                     selectedUid = it
                 },
                 onClose = { showList = false },
+            )
+        }
+
+        if (showSettings) {
+            BackHandler { showSettings = false }
+            SettingsScreen(
+                code = code,
+                onBack = { showSettings = false },
+                onKeepRunning = { showKeepRunning = true },
             )
         }
 
@@ -669,14 +675,12 @@ private fun showFamily(context: Context, style: Style, members: List<Member>, no
     style.getSourceAs<GeoJsonSource>(FAMILY_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(features))
 }
 
-// The floating top card: family name, code and your name, a gear, and the Sharing pill.
-// Spec: HANDOFF.md section 3. Until the Settings screen exists, the gear opens the old menu.
+// The floating top card: family name, code and your name, a gear that opens Settings, and the
+// Sharing pill. Spec: HANDOFF.md section 3.
 @Composable
-fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunning: () -> Unit) {
+fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
-    var menuOpen by remember { mutableStateOf(false) }
-    var showAbout by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier
@@ -700,56 +704,17 @@ fun FamilyStrip(code: String, sharing: Boolean, onToggle: () -> Unit, onKeepRunn
                         color = colors.onSurfaceVariant,
                     )
                 }
-                Box {
-                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(48.dp)) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = colors.onSurfaceVariant,
-                            modifier = Modifier.size(26.dp),
-                        )
-                    }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Keep Mogar running") },
-                            onClick = {
-                                menuOpen = false
-                                onKeepRunning()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("About the map") },
-                            onClick = {
-                                menuOpen = false
-                                showAbout = true
-                            },
-                        )
-                    }
+                IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(26.dp),
+                    )
                 }
             }
             SharingPill(sharing = sharing, onToggle = onToggle, modifier = Modifier.padding(end = 12.dp))
         }
-    }
-
-    // The map's credit line. OpenStreetMap's licence asks for it to be shown somewhere.
-    if (showAbout) {
-        AlertDialog(
-            onDismissRequest = { showAbout = false },
-            title = { Text("About the map") },
-            text = {
-                Text(
-                    "Map data \u00a9 OpenStreetMap contributors.\n" +
-                        "Map tiles by OpenFreeMap.\n" +
-                        "Drawn with MapLibre."
-                )
-            },
-            confirmButton = { TextButton(onClick = { showAbout = false }) { Text("Close") } },
-            dismissButton = {
-                TextButton(onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/copyright")))
-                }) { Text("OpenStreetMap") }
-            },
-        )
     }
 }
 
