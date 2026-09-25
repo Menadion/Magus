@@ -1,0 +1,4 @@
+<resources>
+    <!-- The launcher icon's blue, the app's primary. The green is the family dots' (MogarColors.FamilyGreen). -->
+    <color name="ic_launcher_background">#2F55C4</color>
+</resources>

@@ -1,0 +1,13 @@
+<!-- Themed icons (Android 13 and up) tint one shape: the disc with the ring cut out of it and the
+     small disc inside, drawn as one even-odd path. The ring sits a little nearer the centre so it
+     stays inside the 66 dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M54,21 A33,33 0 1 1 54,87 A33,33 0 1 1 54,21 Z M64,45.5 A18.5,18.5 0 1 1 64,82.5 A18.5,18.5 0 1 1 64,45.5 Z M64,49 A15,15 0 1 1 64,79 A15,15 0 1 1 64,49 Z" />
+</vector>

@@ -1,0 +1,15 @@
+<!-- M's sketch, 2026-09-26: a blue disc (the background layer) with a green disc lower-right and a
+     clear ring between them. Launchers show the middle 72 of these 108 dp, so the ring's edge just
+     reaches the icon's edge along the diagonal, as in the sketch. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M66,47.5 A18.5,18.5 0 1 1 66,84.5 A18.5,18.5 0 1 1 66,47.5 Z" />
+    <path
+        android:fillColor="#FF26803F"
+        android:pathData="M66,51 A15,15 0 1 1 66,81 A15,15 0 1 1 66,51 Z" />
+</vector>
