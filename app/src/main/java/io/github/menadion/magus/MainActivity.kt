@@ -71,6 +71,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -281,7 +282,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             sharing = sharing,
             selectedUid = selectedUid,
             paddingTop = topHeight,
-            paddingBottom = bottomHeight,
+            paddingBottom = { bottomHeight },
             onLocationReady = { startSharingSteps() },
             // A tap on empty map (uid null) closes whatever the panel shows.
             onDotTapped = { uid ->
@@ -314,8 +315,8 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                     .padding(bottom = (boxHeightDp - BOX_CORNER.dp).coerceAtLeast(0.dp)),
             ) {
                 BottomPanel(onClose = { closePanel() }) {
-                    Crossfade(targetState = showList, label = "panel", modifier = Modifier.fillMaxSize()) { list ->
-                        if (list) {
+                    Crossfade(targetState = showList, label = "panel", modifier = Modifier.fillMaxWidth()) { list ->
+                        if (list) Box(modifier = Modifier.height(listPanelHeight())) {
                             FamilyList(
                                 people = people,
                                 now = now,
@@ -447,7 +448,7 @@ fun FamilyMap(
     sharing: Boolean,
     selectedUid: String?,
     paddingTop: Int,
-    paddingBottom: Int,
+    paddingBottom: () -> Int, // read when the camera moves, so a panel that just opened counts
     onLocationReady: () -> Unit,
     onDotTapped: (String?) -> Unit,
 ) {
@@ -569,13 +570,15 @@ fun FamilyMap(
             // The map stops following my phone once a person is picked.
             if (m.locationComponent.isLocationComponentActivated) m.locationComponent.cameraMode = CameraMode.NONE
             m.cancelTransitions()
+            // Wait one frame, so the card that opens with this pick has been measured into paddingBottom.
+            withFrameNanos { }
             val zoom = maxOf(m.cameraPosition.zoom + 1, STREET_ZOOM)
             m.animateCamera(
                 CameraUpdateFactory.newCameraPosition(
                     CameraPosition.Builder()
                         .target(target)
                         .zoom(zoom)
-                        .padding(0.0, (paddingTop + tagRoom).toDouble(), 0.0, paddingBottom.toDouble())
+                        .padding(0.0, (paddingTop + tagRoom).toDouble(), 0.0, paddingBottom().toDouble())
                         .build()
                 ),
                 700,
@@ -588,7 +591,7 @@ fun FamilyMap(
                 points.size >= 2 -> m.animateCamera(
                     CameraUpdateFactory.newLatLngBounds(
                         LatLngBounds.Builder().includes(points).build(),
-                        side + tagRoom, paddingTop + tagRoom, side + tagRoom, paddingBottom + side,
+                        side + tagRoom, paddingTop + tagRoom, side + tagRoom, paddingBottom() + side,
                     ),
                     700,
                 )
@@ -597,7 +600,7 @@ fun FamilyMap(
                         CameraPosition.Builder()
                             .target(points[0])
                             .zoom(STREET_ZOOM)
-                            .padding(0.0, paddingTop.toDouble(), 0.0, paddingBottom.toDouble())
+                            .padding(0.0, paddingTop.toDouble(), 0.0, paddingBottom().toDouble())
                             .build()
                     ),
                     700,

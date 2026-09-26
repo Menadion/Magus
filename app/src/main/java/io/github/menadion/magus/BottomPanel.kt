@@ -1,5 +1,6 @@
 package io.github.menadion.magus
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 
@@ -35,14 +37,23 @@ import androidx.compose.ui.unit.dp
 const val BOX_CORNER = 24
 
 // The panel that rises out of the family box: the person's card, or the See all list. M's spec
-// (2026-09-25 evening, from a ride app's bottom sheet): half the screen tall for both, a margin
-// each side so it reads narrower than the box, touching the box. Swiping it down closes it (a
+// (2026-09-25 evening, from a ride app's bottom sheet): a margin each side so it reads narrower
+// than the box, touching the box. The panel is as tall as what it holds: the card only takes the
+// room it needs, so the dot it zoomed to stays in view (2026-09-26), and the list asks for half the
+// screen (listPanelHeight). Swiping it down closes it (a
 // pull-down on the list once the list is at its top counts), and so do a tap on the map, the back
 // button, and each content's own close button.
+// The See all list's height: with the handle above it and the bottom hidden behind the box, the
+// panel comes to half the screen.
+@Composable
+fun listPanelHeight(): Dp = (LocalConfiguration.current.screenHeightDp * 0.5f).dp - HANDLE_ROOM.dp - BOX_CORNER.dp
+
+// The handle strip at the panel's top: 10 dp above the bar, the 4 dp bar, 6 dp below.
+private const val HANDLE_ROOM = 20
+
 @Composable
 fun BottomPanel(onClose: () -> Unit, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val colors = MaterialTheme.colorScheme
-    val height = (LocalConfiguration.current.screenHeightDp * 0.5f).dp
     val threshold = with(LocalDensity.current) { 64.dp.toPx() }
     val close by rememberUpdatedState(onClose)
     val dragged = remember { mutableFloatStateOf(0f) }
@@ -67,7 +78,7 @@ fun BottomPanel(onClose: () -> Unit, modifier: Modifier = Modifier, content: @Co
         modifier = modifier
             .padding(horizontal = 14.dp)
             .fillMaxWidth()
-            .height(height)
+            .animateContentSize()
             .nestedScroll(pullDown)
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
