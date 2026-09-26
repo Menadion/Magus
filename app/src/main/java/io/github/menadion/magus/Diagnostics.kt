@@ -8,7 +8,7 @@ import android.os.Build
 // which phone, which Mogar, whether the keep-running steps were done, whether the sharer was alive
 // the last time the app opened, and the last crash if there was one.
 object Diagnostics {
-    private fun prefs(context: Context) = context.getSharedPreferences("magus", Context.MODE_PRIVATE)
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
 
     fun appVersion(context: Context): String = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
@@ -60,6 +60,10 @@ object Diagnostics {
             .joinToString(" · ")
     }
 }
+
+// The file every setting on this phone is saved in, still named after the app's first name.
+// Renaming it would wipe the family code and name on phones that already have Mogar.
+const val PREFS_FILE = "magus"
 
 class MogarApp : Application() {
     override fun onCreate() {

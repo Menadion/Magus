@@ -64,7 +64,7 @@ object KeepRunning {
         else -> Brand.OTHER
     }
 
-    private fun prefs(context: Context) = context.getSharedPreferences("magus", Context.MODE_PRIVATE)
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
 
     // Shown once automatically; after that, only from the ⋮ menu.
     fun introShown(context: Context) = prefs(context).getBoolean("keepRunningShown", false)

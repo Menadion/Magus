@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Who can see what in Magus. Paste into Firebase console > Firestore Database > Rules > Publish.
+// Who can see what in Mogar. Paste into Firebase console > Firestore Database > Rules > Publish.
 //
 //   families/{code}                  anyone signed in can check a code exists (to join) or make a new one
 //   families/{code}/members/{uid}    only members of that family can read it; you can only write your own

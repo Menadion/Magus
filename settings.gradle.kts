@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Magus"
+rootProject.name = "Mogar"
 include(":app")

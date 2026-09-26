@@ -45,7 +45,7 @@ object Updates {
     // The release to offer, or null when this phone already runs the newest one.
     val newer: Release? get() = latest?.takeIf { isNewer(it.version, installed) }
 
-    private fun prefs(context: Context) = context.getSharedPreferences("magus", Context.MODE_PRIVATE)
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
 
     // On app start: remembers the last answer, so the dot shows without waiting for today's check.
     fun load(context: Context) {

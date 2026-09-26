@@ -41,7 +41,7 @@ object Family {
     // No I or O, so nobody reads a 1 or a 0 by mistake.
     private const val CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
 
-    private fun prefs(context: Context) = context.getSharedPreferences("magus", Context.MODE_PRIVATE)
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
     private val db get() = FirebaseFirestore.getInstance()
 
     fun savedName(context: Context): String? = prefs(context).getString("name", null)

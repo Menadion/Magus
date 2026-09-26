@@ -28,12 +28,12 @@ object LanguageSetting {
         private set
 
     fun load(context: Context) {
-        mode = context.getSharedPreferences("magus", Context.MODE_PRIVATE).getString("language", SYSTEM) ?: SYSTEM
+        mode = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE).getString("language", SYSTEM) ?: SYSTEM
     }
 
     fun set(activity: Activity, value: String) {
         mode = value
-        activity.getSharedPreferences("magus", Context.MODE_PRIVATE).edit().putString("language", value).apply()
+        activity.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE).edit().putString("language", value).apply()
         activity.startActivity(Intent(activity, activity.javaClass).putExtra(OPEN_SETTINGS, true))
         activity.finish()
         @Suppress("DEPRECATION")

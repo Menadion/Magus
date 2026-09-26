@@ -84,12 +84,12 @@ object ThemeSetting {
         private set
 
     fun load(context: Context) {
-        mode = context.getSharedPreferences("magus", Context.MODE_PRIVATE).getString("theme", SYSTEM) ?: SYSTEM
+        mode = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE).getString("theme", SYSTEM) ?: SYSTEM
     }
 
     fun set(context: Context, value: String) {
         mode = value
-        context.getSharedPreferences("magus", Context.MODE_PRIVATE).edit().putString("theme", value).apply()
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE).edit().putString("theme", value).apply()
     }
 }
 
