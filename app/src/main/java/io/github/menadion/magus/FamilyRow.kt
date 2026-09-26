@@ -29,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -84,7 +85,7 @@ private fun PersonColumn(person: Person, now: Long, onPick: () -> Unit, modifier
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Avatar(state, person.letter, 44.dp, photo = person.member.photo, you = person.isYou)
+        Avatar(state, person.letter, 44.dp, photo = person.member.photo, you = person.isYou, color = Color(person.color))
         Text(
             person.name,
             style = MaterialTheme.typography.labelMedium,
@@ -150,7 +151,7 @@ fun PersonRow(person: Person, now: Long, onPick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Avatar(state, person.letter, 44.dp, photo = person.member.photo, you = person.isYou)
+            Avatar(state, person.letter, 44.dp, photo = person.member.photo, you = person.isYou, color = Color(person.color))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     person.name,

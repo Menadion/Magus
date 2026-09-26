@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
@@ -31,10 +32,43 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// Each member's own colour (M's call, 2026-09-26), in place of the one green everyone had: the
+// filled dot while sharing, the ring and letter while quiet. Picked from the account ID so every
+// phone agrees; when two land on the same colour, the later ID in order takes the next free one.
+// No blue (that's you) and no grey (that's paused); white letters read at 5:1 or better on each.
+object PersonColors {
+    private val palette = listOf(
+        0xFFC62828, // red
+        0xFFB35300, // orange
+        0xFF795548, // brown
+        0xFF5B7318, // olive
+        0xFF26803F, // green, the colour everyone used to be
+        0xFF00796B, // teal
+        0xFF7B42C8, // purple
+        0xFFAD1457, // magenta
+    ).map { it.toInt() }
+
+    fun assign(uids: Collection<String>): Map<String, Int> {
+        val taken = mutableSetOf<Int>()
+        return uids.distinct().sorted().associateWith { uid ->
+            var i = Math.floorMod(uid.hashCode(), palette.size)
+            if (taken.size < palette.size) while (i in taken) i = (i + 1) % palette.size
+            taken += i
+            palette[i]
+        }
+    }
+}
+
 // One person as the screens see them: the member record plus whether it is this phone.
 // The state rules (section 2 of the handoff) hang off this.
 // youLabel is "You" in the phone's language; the screen that builds the list passes it in.
-data class Person(val member: Member, val isYou: Boolean, private val youLabel: String = "You") {
+// color is their own colour from PersonColors; mine only shows on other phones.
+data class Person(
+    val member: Member,
+    val isYou: Boolean,
+    private val youLabel: String = "You",
+    val color: Int = MogarColors.FamilyGreen.toArgb(),
+) {
     val uid get() = member.uid
     val name get() = if (isYou) youLabel else member.name
     val letter get() = member.name.trim().take(1).uppercase()
@@ -84,6 +118,7 @@ fun Avatar(
     modifier: Modifier = Modifier,
     photo: ByteArray? = null,
     you: Boolean = false, // my own circle keeps the white centre, even when paused
+    color: Color = MogarColors.FamilyGreen, // their own colour, from PersonColors
 ) {
     val colors = MaterialTheme.colorScheme
     val letterSize = (size.value * 0.43f).sp
@@ -94,7 +129,7 @@ fun Avatar(
             val ring = when (state) {
                 Markers.State.YOU -> colors.primary
                 Markers.State.PAUSED -> MogarColors.Paused
-                else -> MogarColors.FamilyGreen
+                else -> color
             }
             Image(
                 bitmap = picture,
@@ -112,7 +147,7 @@ fun Avatar(
                 Box(modifier = Modifier.size(size * 0.3f).background(colors.onPrimary, CircleShape))
             }
             Markers.State.SHARING, Markers.State.PAUSED -> {
-                val fill = if (state == Markers.State.SHARING) MogarColors.FamilyGreen else MogarColors.Paused
+                val fill = if (state == Markers.State.SHARING) color else MogarColors.Paused
                 Box(modifier = Modifier.size(size).background(fill, CircleShape))
                 if (you) {
                     Box(modifier = Modifier.size(size * 0.3f).background(Color.White, CircleShape))
@@ -121,8 +156,8 @@ fun Avatar(
                 }
             }
             Markers.State.QUIET -> {
-                Box(modifier = Modifier.size(size).background(Color.White, CircleShape).border(4.dp, MogarColors.FamilyGreen, CircleShape))
-                Text(letter, style = TextStyle(fontFamily = Figtree, fontSize = letterSize, fontWeight = FontWeight.W700), color = MogarColors.QuietInitial)
+                Box(modifier = Modifier.size(size).background(Color.White, CircleShape).border(4.dp, color, CircleShape))
+                Text(letter, style = TextStyle(fontFamily = Figtree, fontSize = letterSize, fontWeight = FontWeight.W700), color = color)
             }
         }
         if (state == Markers.State.PAUSED || state == Markers.State.QUIET) {

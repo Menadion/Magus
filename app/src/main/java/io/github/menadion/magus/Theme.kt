@@ -31,8 +31,7 @@ import androidx.core.view.WindowCompat
 
 // Colours that are Mogar's own, outside Material's roles. The same in both themes.
 object MogarColors {
-    val FamilyGreen = Color(0xFF26803F)   // family dots, quiet ring, done ticks
-    val QuietInitial = Color(0xFF1D6B34)  // the letter inside a quiet (hollow) dot
+    val FamilyGreen = Color(0xFF26803F)   // done ticks, battery; one of the PersonColors
     val Paused = Color(0xFF6E7482)        // paused dot
 }
 

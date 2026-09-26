@@ -76,6 +76,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -276,12 +277,14 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
         sharing = sharing,
         phone = Family.savedPhone(context),
     )).copy(sharing = sharing)
+    val personColors = PersonColors.assign(members.map { it.uid } + listOfNotNull(myUid))
     val people = listOf(Person(meNow, isYou = true, youLabel = context.getString(R.string.you))) +
-        members.sortedBy { it.name.lowercase() }.map { Person(it, isYou = false) }
+        members.sortedBy { it.name.lowercase() }.map { Person(it, isYou = false, color = personColors.getValue(it.uid)) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         FamilyMap(
             members = members,
+            colors = personColors,
             me = me,
             now = now,
             sharing = sharing,
@@ -456,6 +459,7 @@ private fun isGranted(context: Context, permission: String) =
 @Composable
 fun FamilyMap(
     members: List<Member>,
+    colors: Map<String, Int>, // each member's own colour, from PersonColors
     me: Member?,
     now: Long,
     sharing: Boolean,
@@ -572,7 +576,7 @@ fun FamilyMap(
 
     // Redraw the family whenever the list changes, and on each 30-second recheck.
     LaunchedEffect(style, members, now, selectedUid) {
-        style?.let { showFamily(context, it, members, now, selectedUid) }
+        style?.let { showFamily(context, it, members, colors, now, selectedUid) }
     }
 
     // Picking a person flies the camera to them, aimed at the gap between the top card and the
@@ -738,9 +742,10 @@ private fun markerImage(
     selected: Boolean,
     you: Boolean = false,
     photo: ByteArray? = null,
+    color: Int = MogarColors.FamilyGreen.toArgb(),
 ): String {
-    val id = Markers.id(state, name, selected, you, photo)
-    if (style.getImage(id) == null) style.addImage(id, Markers.draw(context, state, name, selected, you, photo))
+    val id = Markers.id(state, name, selected, you, photo, color)
+    if (style.getImage(id) == null) style.addImage(id, Markers.draw(context, state, name, selected, you, photo, color))
     return id
 }
 
@@ -781,7 +786,7 @@ private fun addFamilyLayers(style: Style) {
     )
 }
 
-private fun showFamily(context: Context, style: Style, members: List<Member>, now: Long, selectedUid: String?) {
+private fun showFamily(context: Context, style: Style, members: List<Member>, colors: Map<String, Int>, now: Long, selectedUid: String?) {
     val features = members.map { member ->
         Feature.fromGeometry(Point.fromLngLat(member.lng, member.lat)).apply {
             addStringProperty("uid", member.uid)
@@ -791,7 +796,7 @@ private fun showFamily(context: Context, style: Style, members: List<Member>, no
                 "icon",
                 markerImage(
                     context, style, Markers.state(member, now), member.name, member.uid == selectedUid,
-                    photo = member.photo,
+                    photo = member.photo, color = colors.getValue(member.uid),
                 ),
             )
         }

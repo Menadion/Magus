@@ -27,7 +27,6 @@ object Markers {
 
     private const val PRIMARY = 0xFF2F55C4.toInt()
     private const val FAMILY_GREEN = 0xFF26803F.toInt()
-    private const val QUIET_INITIAL = 0xFF1D6B34.toInt()
     private const val PAUSED_GREY = 0xFF6E7482.toInt()
     private const val ON_SURFACE = 0xFF1A1B20.toInt()
     private const val ON_SURFACE_VARIANT = 0xFF45464F.toInt()
@@ -41,9 +40,9 @@ object Markers {
     }
 
     // The id the map caches the picture under. Same inputs, same picture.
-    fun id(state: State, name: String, selected: Boolean, you: Boolean = false, photo: ByteArray? = null) =
+    fun id(state: State, name: String, selected: Boolean, you: Boolean = false, photo: ByteArray? = null, personColor: Int = FAMILY_GREEN) =
         "marker:" + state.name + ":" + (if (selected) "sel:" else "") + (if (you) "you:" else "") +
-            Photos.key(photo) + ":" + name
+            Photos.key(photo) + ":" + Integer.toHexString(personColor) + ":" + name
 
     // you: this is my own dot, so it keeps the white centre even while paused.
     fun draw(
@@ -53,6 +52,7 @@ object Markers {
         selected: Boolean,
         you: Boolean = false,
         photo: ByteArray? = null,
+        personColor: Int = FAMILY_GREEN, // their own colour, from PersonColors
     ): Bitmap {
         val metrics = context.resources.displayMetrics
         val density = metrics.density
@@ -133,15 +133,15 @@ object Markers {
         val innerRadius = dp(dotSize) / 2 - dp(whiteRing)
         plain.color = when (state) {
             State.YOU -> PRIMARY
-            State.SHARING -> FAMILY_GREEN
+            State.SHARING -> personColor
             State.PAUSED -> PAUSED_GREY
             State.QUIET -> WHITE
         }
         canvas.drawCircle(cx, cy, innerRadius, plain)
         if (state == State.QUIET) {
-            // Hollow: a 4 dp green ring inside the white ring, white middle.
+            // Hollow: a 4 dp ring in their colour inside the white ring, white middle.
             val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = FAMILY_GREEN
+                color = personColor
                 style = Paint.Style.STROKE
                 strokeWidth = dp(4f)
             }
@@ -173,7 +173,7 @@ object Markers {
             val letterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 typeface = bold
                 textSize = sp(16f)
-                color = if (state == State.QUIET) QUIET_INITIAL else WHITE
+                color = if (state == State.QUIET) personColor else WHITE
             }
             canvas.drawText(
                 letter,
