@@ -1,0 +1,106 @@
+<!doctype html>
+<!-- Globe test (debug builds only): Mogar's map style on MapLibre GL JS's globe, three fixed dots
+     with names, nothing tappable. Reports frames per second to logcat through console.log, which
+     GlobeTestActivity forwards under the tag MogarGlobe. It only turns when dragged; ?spin=1 turns it
+     on its own, for measuring frames per second. -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="maplibre-gl.css">
+  <script src="maplibre-gl.js"></script>
+  <style>
+    html, body, #map { margin: 0; height: 100%; background: #0b0d12; }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+  const params = new URLSearchParams(location.search);
+
+  // Fixed test positions, not live data.
+  const people = [
+    { name: "You", lng: 121.0, lat: 14.6, color: "#3B5BDB" },
+    { name: "Dadie", lng: 12.5, lat: 41.9, color: "#2F9E44" },
+    { name: "MhieMha", lng: 123.9, lat: 10.3, color: "#2F9E44" },
+  ];
+
+  const map = new maplibregl.Map({
+    container: "map",
+    style: "https://tiles.openfreemap.org/styles/liberty",
+    center: [121.0, 14.6],
+    zoom: 1.5,
+    // Viewer only (M, 2026-09-26): a drag turns the globe any way, toward the poles too (he tried
+    // sideways-only and kept this), and nothing zooms or tilts it.
+    minZoom: 1.5,
+    maxZoom: 1.5,
+    scrollZoom: false,
+    boxZoom: false,
+    doubleClickZoom: false,
+    touchZoomRotate: false,
+    dragRotate: false,
+    touchPitch: false,
+    keyboard: false,
+    attributionControl: false,
+  });
+
+  map.on("error", (e) => console.log("error " + (e.error && e.error.message)));
+
+  map.on("style.load", () => {
+    map.setProjection({ type: "globe" });
+    map.addSource("people", {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: people.map((p) => ({
+          type: "Feature",
+          properties: { name: p.name, color: p.color },
+          geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+        })),
+      },
+    });
+    map.addLayer({
+      id: "people-dots",
+      type: "circle",
+      source: "people",
+      paint: {
+        "circle-radius": 9,
+        "circle-color": ["get", "color"],
+        "circle-stroke-width": 3,
+        "circle-stroke-color": "#ffffff",
+      },
+    });
+    map.addLayer({
+      id: "people-names",
+      type: "symbol",
+      source: "people",
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": 14,
+        "text-offset": [0, -1.6],
+        "text-anchor": "bottom",
+        "text-allow-overlap": true,
+      },
+      paint: { "text-color": "#1b1f2a", "text-halo-color": "#ffffff", "text-halo-width": 2 },
+    });
+    console.log("ready projection=" + JSON.stringify(map.getProjection()) + " webgl2=" + !!document.createElement("canvas").getContext("webgl2"));
+  });
+
+  // Frames drawn per second, every 2 seconds.
+  let frames = 0;
+  (function count() { frames++; requestAnimationFrame(count); })();
+  setInterval(() => { console.log("fps " + (frames / 2).toFixed(1)); frames = 0; }, 2000);
+
+  if (params.get("spin") === "1") {
+    map.once("load", () => {
+      (function turn() {
+        const c = map.getCenter();
+        map.jumpTo({ center: [c.lng - 0.6, c.lat] });
+        requestAnimationFrame(turn);
+      })();
+    });
+  }
+</script>
+</body>
+</html>
