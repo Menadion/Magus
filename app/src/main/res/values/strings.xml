@@ -88,6 +88,19 @@
     <string name="update_tap">Tap to check</string>
     <string name="update_download">Download Mogar %1$s</string>
 
+    <!-- Send feedback -->
+    <string name="feedback">Send feedback</string>
+    <string name="feedback_subtitle">Problems or ideas, all optional</string>
+    <string name="feedback_settings_q">Did the buttons in Keep Mogar running take you to the right page?</string>
+    <string name="feedback_yes">Yes</string>
+    <string name="feedback_no">No</string>
+    <string name="feedback_landed">Where did you end up?</string>
+    <string name="feedback_suggest">Anything to fix or add?</string>
+    <string name="feedback_note">Everything here is optional. Your name and phone model are sent with it.</string>
+    <string name="feedback_thanks">Thank you! If your phone is offline, it goes out as soon as it\'s back online.</string>
+    <string name="send">Send</string>
+    <string name="sending">Sending…</string>
+
     <!-- Family page -->
     <string name="change_family_name">Change family name</string>
     <string name="copied">Copied</string>

@@ -4,6 +4,7 @@ rules_version = '2';
 //
 //   families/{code}                  anyone signed in can check a code exists (to join) or make a new one
 //   families/{code}/members/{uid}    only members of that family can read it; you can only write your own
+//   feedback/{id}                    anyone signed in can add one; nobody can read them from a phone
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -29,6 +30,12 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/families/$(code));
         allow delete: if signedIn() && request.auth.uid == uid;
       }
+    }
+
+    // Notes from Settings > Send feedback. A phone can add its own, and no phone can read any.
+    // They're read on the laptop by tools/read-feedback.mjs, whose admin key skips these rules.
+    match /feedback/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
     }
   }
 }

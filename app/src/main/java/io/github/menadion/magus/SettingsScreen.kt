@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -60,6 +61,7 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     var showAbout by remember { mutableStateOf(false) }
+    var showFeedback by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = colors.surface) {
         Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -119,6 +121,13 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
                             icon = { Icon(Icons.Default.Info, contentDescription = null, tint = colors.primary) },
                             onClick = { showAbout = true },
                         )
+                        Divider()
+                        NavRow(
+                            title = stringResource(R.string.feedback),
+                            subtitle = stringResource(R.string.feedback_subtitle),
+                            icon = { Icon(Icons.Default.Email, contentDescription = null, tint = colors.primary) },
+                            onClick = { showFeedback = true },
+                        )
                     }
                 }
             }
@@ -140,6 +149,7 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
             },
         )
     }
+    if (showFeedback) FeedbackDialog(onClose = { showFeedback = false })
 }
 
 // Check for updates: a tap asks GitHub and the subtitle says what it found. A newer Mogar puts the

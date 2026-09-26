@@ -85,6 +85,19 @@
     <string name="update_tap">Pindutin para tingnan</string>
     <string name="update_download">I-download ang Mogar %1$s</string>
 
+    <!-- Send feedback -->
+    <string name="feedback">Magpadala ng feedback</string>
+    <string name="feedback_subtitle">Mga problema o ideya, opsyonal lahat</string>
+    <string name="feedback_settings_q">Dinala ka ba ng mga button sa Panatilihing tumatakbo ang Mogar sa tamang page?</string>
+    <string name="feedback_yes">Oo</string>
+    <string name="feedback_no">Hindi</string>
+    <string name="feedback_landed">Saan ka napunta?</string>
+    <string name="feedback_suggest">May gusto ka bang ipaayos o idagdag?</string>
+    <string name="feedback_note">Opsyonal lahat ng nandito. Kasama sa ipapadala ang pangalan mo at ang modelo ng phone mo.</string>
+    <string name="feedback_thanks">Salamat! Kung offline ang phone mo, maipapadala ito pagbalik ng internet.</string>
+    <string name="send">Ipadala</string>
+    <string name="sending">Ipinapadala…</string>
+
     <!-- Family page -->
     <string name="change_family_name">Palitan ang pangalan ng pamilya</string>
     <string name="copied">Nakopya</string>
