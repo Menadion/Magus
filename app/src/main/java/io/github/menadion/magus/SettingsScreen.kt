@@ -7,6 +7,8 @@ import androidx.compose.material3.SegmentedButton
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -153,16 +155,24 @@ fun SettingsScreen(onBack: () -> Unit, onKeepRunning: () -> Unit) {
 }
 
 // Check for updates: a tap asks GitHub and the subtitle says what it found. A newer Mogar puts the
-// red dot on the row's icon and a Download button under it; the browser downloads the file and
-// Android's installer takes over from its notification. Spec: Backlog, "updates", 2026-09-25.
+// red dot on the row's icon and a button under it that walks the update through: Download,
+// Downloading… 45%, Install. Install asks once for "Install unknown apps" if the phone hasn't allowed
+// it, then Android's installer takes over. Spec: Backlog, "updates", 2026-09-25 and 2026-09-26.
 @Composable
 fun UpdateRow() {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     val newer = Updates.newer
+    var askPermission by remember { mutableStateOf(false) }
+    // Back from Android's "Install unknown apps" page: installs straight away if they turned it on.
+    val permissionPage = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        val release = Updates.newer
+        if (release != null && Updates.canInstall(context)) Updates.install(context, release)
+    }
     val subtitle = when {
         Updates.state == Updates.State.CHECKING -> stringResource(R.string.update_checking)
+        newer != null && Updates.download == Updates.Download.FAILED -> stringResource(R.string.update_download_failed)
         newer != null -> stringResource(R.string.update_out, newer.version) + if (newer.notes.isNotBlank()) ": ${newer.notes}" else ""
         Updates.state == Updates.State.CHECKED -> stringResource(R.string.update_latest, Diagnostics.appVersion(context))
         Updates.state == Updates.State.FAILED -> stringResource(R.string.update_failed)
@@ -182,11 +192,46 @@ fun UpdateRow() {
             onClick = { scope.launch { Updates.check(context) } },
         )
         if (newer != null) {
+            val downloading = Updates.download == Updates.Download.DOWNLOADING
+            val ready = Updates.isReady(context, newer)
+            // Stays enabled while downloading so the percentage reads in full colour; a tap then does nothing.
             Button(
-                onClick = { Updates.open(context, newer) },
+                onClick = {
+                    when {
+                        downloading -> {}
+                        !ready -> Updates.startDownload(context, newer)
+                        Updates.canInstall(context) -> Updates.install(context, newer)
+                        else -> askPermission = true
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, bottom = 14.dp),
-            ) { Text(stringResource(R.string.update_download, newer.version)) }
+            ) {
+                Text(
+                    when {
+                        downloading -> stringResource(R.string.update_downloading, Updates.percent)
+                        ready -> stringResource(R.string.update_install, newer.version)
+                        else -> stringResource(R.string.update_download, newer.version)
+                    }
+                )
+            }
         }
+    }
+
+    if (askPermission) {
+        AlertDialog(
+            onDismissRequest = { askPermission = false },
+            title = { Text(stringResource(R.string.install_permission_title)) },
+            text = { Text(stringResource(R.string.install_permission_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    askPermission = false
+                    permissionPage.launch(Updates.permissionPage(context))
+                }) { Text(stringResource(R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { askPermission = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 }
 

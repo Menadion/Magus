@@ -89,6 +89,12 @@
     <string name="update_busy">Error. Try again in an hour.</string>
     <string name="update_tap">Tap to check</string>
     <string name="update_download">Download Mogar %1$s</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_install">Install Mogar %1$s</string>
+    <string name="update_download_failed">Download failed. Try again.</string>
+    <string name="install_permission_title">One-time permission</string>
+    <string name="install_permission_text">Android will ask once to let Mogar install its updates. Turn on Allow, then press back.</string>
+    <string name="ok">OK</string>
 
     <!-- Send feedback -->
     <string name="feedback">Send feedback</string>
@@ -166,4 +172,8 @@
     <!-- Sharing service notification -->
     <string name="channel_sharing">Location sharing</string>
     <string name="sharing_with">Sharing your location with %1$s</string>
+
+    <!-- Update download notification -->
+    <string name="channel_updates">Updates</string>
+    <string name="update_notification">Downloading Mogar %1$s</string>
 </resources>

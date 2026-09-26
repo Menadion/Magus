@@ -86,6 +86,12 @@
     <string name="update_busy">Nagka-error. Subukan ulit pagkalipas ng isang oras.</string>
     <string name="update_tap">Pindutin para tingnan</string>
     <string name="update_download">I-download ang Mogar %1$s</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_install">I-install ang sunod na update (Mogar %1$s)</string>
+    <string name="update_download_failed">Hindi na-download. Subukan ulit.</string>
+    <string name="install_permission_title">Isang beses lang</string>
+    <string name="install_permission_text">Isang beses lang itatanong ng Android kung puwedeng mag-install ng update ang Mogar. I-on ang Allow, tapos pindutin ang back.</string>
+    <string name="ok">OK</string>
 
     <!-- Send feedback -->
     <string name="feedback">Magpadala ng feedback</string>
@@ -163,4 +169,8 @@
     <!-- Sharing service notification -->
     <string name="channel_sharing">Pag-share ng lokasyon</string>
     <string name="sharing_with">Nakikita ka ng %1$s</string>
+
+    <!-- Update download notification -->
+    <string name="channel_updates">Mga update</string>
+    <string name="update_notification">Dina-download ang Mogar %1$s</string>
 </resources>
