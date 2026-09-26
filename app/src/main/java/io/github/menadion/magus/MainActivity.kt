@@ -42,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -78,6 +79,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -281,10 +283,15 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     val people = listOf(Person(meNow, isYou = true, youLabel = context.getString(R.string.you))) +
         members.sortedBy { it.name.lowercase() }.map { Person(it, isYou = false, color = personColors.getValue(it.uid)) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Where each member's dot sits on screen, and the screen's size, for the edge markers.
+    var dotPoints by remember { mutableStateOf(emptyMap<String, Offset>()) }
+    var screenSize by remember { mutableStateOf(IntSize.Zero) }
+
+    Box(modifier = Modifier.fillMaxSize().onSizeChanged { screenSize = it }) {
         FamilyMap(
             members = members,
             colors = personColors,
+            onProjected = { dotPoints = it },
             me = me,
             now = now,
             sharing = sharing,
@@ -297,6 +304,18 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             onDotTapped = { uid ->
                 showList = false
                 selectedUid = uid
+            },
+        )
+
+        // Family whose dots are off the visible map, pinned to its edge and pointing at them.
+        EdgeMarkers(
+            people = people,
+            now = now,
+            points = dotPoints,
+            area = Rect(0f, topHeight.toFloat(), screenSize.width.toFloat(), (screenSize.height - bottomHeight).toFloat()),
+            onPick = {
+                showList = false
+                selectedUid = it
             },
         )
 
@@ -460,6 +479,7 @@ private fun isGranted(context: Context, permission: String) =
 fun FamilyMap(
     members: List<Member>,
     colors: Map<String, Int>, // each member's own colour, from PersonColors
+    onProjected: (Map<String, Offset>) -> Unit, // where each dot sits on screen, after every camera move
     me: Member?,
     now: Long,
     sharing: Boolean,
@@ -507,6 +527,16 @@ fun FamilyMap(
         }
     }
 
+    // Reports where each member's dot sits on screen, in pixels, for the edge markers.
+    val latestMembers by rememberUpdatedState(members)
+    val latestOnProjected by rememberUpdatedState(onProjected)
+    fun project(m: MapLibreMap) {
+        latestOnProjected(latestMembers.associate { member ->
+            m.projection.toScreenLocation(LatLng(member.lat, member.lng)).let { member.uid to Offset(it.x, it.y) }
+        })
+    }
+    LaunchedEffect(map, members) { map?.let { project(it) } }
+
     val mapView = remember {
         MapView(context).apply {
             onCreate(null)
@@ -519,6 +549,8 @@ fun FamilyMap(
                 // The screen's centre can't cross the date line, so panning sideways ends instead of
                 // looping round the world forever (M's option A, 2026-09-26, until a globe exists).
                 m.setLatLngBoundsForCameraTarget(LatLngBounds.world())
+                m.addOnCameraMoveListener { project(m) }
+                m.addOnCameraIdleListener { project(m) }
                 m.uiSettings.isCompassEnabled = false
                 m.uiSettings.isLogoEnabled = false
                 m.uiSettings.isAttributionEnabled = false // credit lives under ⋮ > About the map
