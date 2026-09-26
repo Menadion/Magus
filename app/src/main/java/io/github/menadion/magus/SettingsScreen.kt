@@ -166,6 +166,7 @@ fun UpdateRow() {
         newer != null -> stringResource(R.string.update_out, newer.version) + if (newer.notes.isNotBlank()) ": ${newer.notes}" else ""
         Updates.state == Updates.State.CHECKED -> stringResource(R.string.update_latest, Diagnostics.appVersion(context))
         Updates.state == Updates.State.FAILED -> stringResource(R.string.update_failed)
+        Updates.state == Updates.State.BUSY -> stringResource(R.string.update_busy)
         else -> stringResource(R.string.update_tap)
     }
     Column {

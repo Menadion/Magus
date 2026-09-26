@@ -31,7 +31,10 @@ object Updates {
 
     class Release(val version: String, val notes: String, val url: String)
 
-    enum class State { UNKNOWN, CHECKING, CHECKED, FAILED }
+    // BUSY: GitHub refused because too many checks came from this internet address this hour.
+    enum class State { UNKNOWN, CHECKING, CHECKED, FAILED, BUSY }
+
+    private class TooManyChecks : Exception()
 
     var state by mutableStateOf(State.UNKNOWN)
         private set
@@ -79,7 +82,7 @@ object Updates {
             editor.apply()
             state = State.CHECKED
         }.onFailure {
-            state = State.FAILED
+            state = if (it is TooManyChecks) State.BUSY else State.FAILED
         }
     }
 
@@ -93,6 +96,12 @@ object Updates {
         }
         try {
             if (connection.responseCode == 404) return null
+            // GitHub allows 60 checks an hour per internet address without an account, and a whole
+            // home Wi-Fi or a carrier's shared address counts as one. When they're used up it answers
+            // 403 or 429 with no requests remaining.
+            if (connection.responseCode in listOf(403, 429) && connection.getHeaderField("x-ratelimit-remaining") == "0") {
+                throw TooManyChecks()
+            }
             if (connection.responseCode != 200) throw IllegalStateException("GitHub answered ${connection.responseCode}")
             val json = JSONObject(connection.inputStream.bufferedReader().readText())
             val version = json.getString("tag_name").removePrefix("v")

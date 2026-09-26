@@ -84,6 +84,7 @@
     <string name="update_out">Mogar %1$s is out</string>
     <string name="update_latest">Mogar %1$s is the latest</string>
     <string name="update_failed">Couldn\'t check. Are you online?</string>
+    <string name="update_busy">Error. Try again in an hour.</string>
     <string name="update_tap">Tap to check</string>
     <string name="update_download">Download Mogar %1$s</string>
 

@@ -81,6 +81,7 @@
     <string name="update_out">May bagong Mogar %1$s</string>
     <string name="update_latest">Pinakabago na ang Mogar %1$s</string>
     <string name="update_failed">Hindi ma-check. Naka-online ka ba?</string>
+    <string name="update_busy">Nagka-error. Subukan ulit pagkalipas ng isang oras.</string>
     <string name="update_tap">Pindutin para tingnan</string>
     <string name="update_download">I-download ang Mogar %1$s</string>
 
