@@ -39,6 +39,8 @@
     <string name="go_to_person">Puntahan si %1$s sa mapa</string>
     <string name="go_to_person_paused">Puntahan si %1$s sa mapa, naka-pause ang pag-share</string>
     <string name="go_to_person_quiet">Puntahan si %1$s sa mapa, tahimik ang phone</string>
+    <string name="family_scroll_left">Ipakita ang iba pang kapamilya sa kaliwa</string>
+    <string name="family_scroll_right">Ipakita ang iba pang kapamilya sa kanan</string>
     <string name="close_list">Isara ang listahan</string>
     <string name="tap_name_hint">Pindutin ang pangalan para makita sila sa mapa</string>
 

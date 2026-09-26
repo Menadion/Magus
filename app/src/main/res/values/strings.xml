@@ -39,6 +39,8 @@
     <string name="go_to_person">Go to %1$s on the map</string>
     <string name="go_to_person_paused">Go to %1$s on the map, sharing paused</string>
     <string name="go_to_person_quiet">Go to %1$s on the map, phone quiet</string>
+    <string name="family_scroll_left">Show more family to the left</string>
+    <string name="family_scroll_right">Show more family to the right</string>
     <string name="close_list">Close list</string>
     <string name="tap_name_hint">Tap a name to see them on the map</string>
 
