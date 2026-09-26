@@ -512,6 +512,9 @@ fun FamilyMap(
                 // Antarctica. MapLibre draws the world 512 dp across at zoom 0.
                 val screenDp = context.resources.displayMetrics.run { heightPixels / density }
                 m.setMinZoomPreference(log2(screenDp / 512.0))
+                // The screen's centre can't cross the date line, so panning sideways ends instead of
+                // looping round the world forever (M's option A, 2026-09-26, until a globe exists).
+                m.setLatLngBoundsForCameraTarget(LatLngBounds.world())
                 m.uiSettings.isCompassEnabled = false
                 m.uiSettings.isLogoEnabled = false
                 m.uiSettings.isAttributionEnabled = false // credit lives under ⋮ > About the map
