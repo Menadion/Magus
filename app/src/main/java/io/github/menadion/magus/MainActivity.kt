@@ -93,6 +93,7 @@ import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
+import kotlin.math.log2
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -507,6 +508,10 @@ fun FamilyMap(
             onCreate(null)
             getMapAsync { m ->
                 m.cameraPosition = CameraPosition.Builder().target(PHILIPPINES).zoom(4.8).build()
+                // No further out than a world as tall as the screen; past that, blank shows below
+                // Antarctica. MapLibre draws the world 512 dp across at zoom 0.
+                val screenDp = context.resources.displayMetrics.run { heightPixels / density }
+                m.setMinZoomPreference(log2(screenDp / 512.0))
                 m.uiSettings.isCompassEnabled = false
                 m.uiSettings.isLogoEnabled = false
                 m.uiSettings.isAttributionEnabled = false // credit lives under ⋮ > About the map
