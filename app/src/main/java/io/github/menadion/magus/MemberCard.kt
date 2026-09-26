@@ -106,7 +106,7 @@ fun MemberCard(person: Person, now: Long, onClose: () -> Unit, modifier: Modifie
             }
             Box(modifier = Modifier.size(48.dp).background(colors.surfaceContainerHigh, CircleShape)) {
                 IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_show_everyone), tint = colors.onSurface)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), tint = colors.onSurface)
                 }
             }
         }

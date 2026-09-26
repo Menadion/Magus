@@ -43,7 +43,6 @@
     <string name="tap_name_hint">Tap a name to see them on the map</string>
 
     <!-- Person's card -->
-    <string name="close_show_everyone">Close and show everyone</string>
     <string name="last_seen">Last seen</string>
     <string name="battery">Battery</string>
     <string name="just_now">just now</string>

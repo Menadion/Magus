@@ -178,6 +178,10 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
     var members by remember { mutableStateOf(emptyList<Member>()) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     var selectedUid by remember { mutableStateOf<String?>(null) }
+    // Show everyone stays up from the first pick until it's tapped; closing a card leaves the map
+    // where it is (M's call, 2026-09-26). Each tap bumps fitRequest, which the map answers.
+    var zoomedIn by remember { mutableStateOf(false) }
+    var fitRequest by remember { mutableIntStateOf(0) }
     var showKeepRunning by remember { mutableStateOf(false) }
     var showSettings by rememberSaveable {
         mutableStateOf((context as? Activity)?.intent?.getBooleanExtra(LanguageSetting.OPEN_SETTINGS, false) ?: false)
@@ -283,6 +287,7 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             selectedUid = selectedUid,
             paddingTop = topHeight,
             paddingBottom = { bottomHeight },
+            fitRequest = fitRequest,
             onLocationReady = { startSharingSteps() },
             // A tap on empty map (uid null) closes whatever the panel shows.
             onDotTapped = { uid ->
@@ -296,7 +301,10 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
         // showing the last picked person while it slides away.
         val selected = people.find { it.uid == selectedUid }
         var shown by remember { mutableStateOf<Person?>(null) }
-        if (selected != null) shown = selected
+        if (selected != null) {
+            shown = selected
+            zoomedIn = true
+        }
         val panelOpen = showList || selected != null
         fun closePanel() {
             showList = false
@@ -367,9 +375,13 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                     onFamily = { showFamilyPage = true },
                 )
             }
-            AnimatedVisibility(visible = selected != null) {
+            AnimatedVisibility(visible = zoomedIn) {
                 ShowEveryoneButton(
-                    onClick = { selectedUid = null },
+                    onClick = {
+                        selectedUid = null
+                        zoomedIn = false
+                        fitRequest++
+                    },
                     modifier = Modifier.padding(start = 12.dp, top = 12.dp),
                 )
             }
@@ -449,6 +461,7 @@ fun FamilyMap(
     selectedUid: String?,
     paddingTop: Int,
     paddingBottom: () -> Int, // read when the camera moves, so a panel that just opened counts
+    fitRequest: Int, // goes up by one each time Show everyone is tapped
     onLocationReady: () -> Unit,
     onDotTapped: (String?) -> Unit,
 ) {
@@ -555,15 +568,16 @@ fun FamilyMap(
     }
 
     // Picking a person flies the camera to them, aimed at the gap between the top card and the
-    // member card. Leaving focus zooms back out to fit everyone. Spec: HANDOFF.md section 4.
-    var wasFocused by remember { mutableStateOf(false) }
+    // member card. Closing the card leaves the camera there; only Show everyone zooms back out to
+    // fit everyone (M's change, 2026-09-26, to HANDOFF.md section 4).
+    val density = context.resources.displayMetrics.density
+    val side = (12 * density).toInt()
+    val tagRoom = (60 * density).toInt() // the name tag sits above the dot
+    fun mine() = myLocation?.let { LatLng(it.latitude, it.longitude) } ?: me?.let { LatLng(it.lat, it.lng) }
     LaunchedEffect(map, selectedUid) {
         val m = map ?: return@LaunchedEffect
         val myUid = FirebaseAuth.getInstance().currentUser?.uid
-        val mine = myLocation?.let { LatLng(it.latitude, it.longitude) } ?: me?.let { LatLng(it.lat, it.lng) }
-        val density = context.resources.displayMetrics.density
-        val side = (12 * density).toInt()
-        val tagRoom = (60 * density).toInt() // the name tag sits above the dot
+        val mine = mine()
         if (selectedUid != null) {
             val target = if (selectedUid == myUid) mine else members.find { it.uid == selectedUid }?.let { LatLng(it.lat, it.lng) }
             if (target == null) return@LaunchedEffect
@@ -583,29 +597,31 @@ fun FamilyMap(
                 ),
                 700,
             )
-            wasFocused = true
-        } else if (wasFocused) {
-            wasFocused = false
-            val points = members.map { LatLng(it.lat, it.lng) } + listOfNotNull(mine)
-            when {
-                points.size >= 2 -> m.animateCamera(
-                    CameraUpdateFactory.newLatLngBounds(
-                        LatLngBounds.Builder().includes(points).build(),
-                        side + tagRoom, paddingTop + tagRoom, side + tagRoom, paddingBottom() + side,
-                    ),
-                    700,
-                )
-                points.size == 1 -> m.animateCamera(
-                    CameraUpdateFactory.newCameraPosition(
-                        CameraPosition.Builder()
-                            .target(points[0])
-                            .zoom(STREET_ZOOM)
-                            .padding(0.0, paddingTop.toDouble(), 0.0, paddingBottom().toDouble())
-                            .build()
-                    ),
-                    700,
-                )
-            }
+        }
+    }
+
+    LaunchedEffect(map, fitRequest) {
+        val m = map ?: return@LaunchedEffect
+        if (fitRequest == 0) return@LaunchedEffect
+        val points = members.map { LatLng(it.lat, it.lng) } + listOfNotNull(mine())
+        when {
+            points.size >= 2 -> m.animateCamera(
+                CameraUpdateFactory.newLatLngBounds(
+                    LatLngBounds.Builder().includes(points).build(),
+                    side + tagRoom, paddingTop + tagRoom, side + tagRoom, paddingBottom() + side,
+                ),
+                700,
+            )
+            points.size == 1 -> m.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(points[0])
+                        .zoom(STREET_ZOOM)
+                        .padding(0.0, paddingTop.toDouble(), 0.0, paddingBottom().toDouble())
+                        .build()
+                ),
+                700,
+            )
         }
     }
 

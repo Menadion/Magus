@@ -43,7 +43,6 @@
     <string name="tap_name_hint">Pindutin ang pangalan para makita sila sa mapa</string>
 
     <!-- Person's card -->
-    <string name="close_show_everyone">Isara at ipakita ang lahat</string>
     <string name="last_seen">Huling nakita</string>
     <string name="battery">Baterya</string>
     <string name="just_now">ngayon lang</string>
