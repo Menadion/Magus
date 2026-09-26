@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -81,10 +82,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -319,8 +318,10 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             },
         )
 
-        // Bottom: the family box on the screen's bottom edge, and the panel that rises out of its
-        // top: the person's card while someone is picked, the list after See all. The panel keeps
+        // Bottom: the family box on the screen's bottom edge, or in its place the panel: the
+        // person's card while someone is picked, the list after See all. Opening one slides the
+        // family box down and the panel up into the same spot, together; closing slides them back
+        // (M's call, 2026-09-26, replacing the panel that rose out of the box). The panel keeps
         // showing the last picked person while it slides away.
         val selected = people.find { it.uid == selectedUid }
         var shown by remember { mutableStateOf<Person?>(null) }
@@ -334,16 +335,33 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
             selectedUid = null
         }
         BackHandler(enabled = panelOpen) { closePanel() }
-        var boxHeight by remember { mutableIntStateOf(0) }
-        val boxHeightDp = with(LocalDensity.current) { boxHeight.toDp() }
+        val familyRowScroll = rememberLazyListState() // kept while the box is away, for big families
         Box(modifier = Modifier.align(Alignment.BottomCenter).onSizeChanged { bottomHeight = it.height }) {
             AnimatedVisibility(
+                visible = !panelOpen,
+                enter = slideInVertically(tween(300)) { it },
+                exit = slideOutVertically(tween(300)) { it },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            ) {
+                FamilyRow(
+                    people = people,
+                    now = now,
+                    scroll = familyRowScroll,
+                    onPick = {
+                        showList = false
+                        selectedUid = it
+                    },
+                    onSeeAll = {
+                        selectedUid = null
+                        showList = true
+                    },
+                )
+            }
+            AnimatedVisibility(
                 visible = panelOpen,
-                enter = slideInVertically(tween(320)) { it },
-                exit = slideOutVertically(tween(260)) { it },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = (boxHeightDp - BOX_CORNER.dp).coerceAtLeast(0.dp)),
+                enter = slideInVertically(tween(300)) { it },
+                exit = slideOutVertically(tween(300)) { it },
+                modifier = Modifier.align(Alignment.BottomCenter),
             ) {
                 BottomPanel(onClose = { closePanel() }) {
                     Crossfade(targetState = showList, label = "panel", modifier = Modifier.fillMaxWidth()) { list ->
@@ -363,20 +381,6 @@ fun FamilyScreen(code: String, onLeft: () -> Unit) {
                     }
                 }
             }
-            // Drawn over the panel, so the panel's bottom hides behind the box's rounded top.
-            FamilyRow(
-                people = people,
-                now = now,
-                onPick = {
-                    showList = false
-                    selectedUid = it
-                },
-                onSeeAll = {
-                    selectedUid = null
-                    showList = true
-                },
-                modifier = Modifier.align(Alignment.BottomCenter).zIndex(1f).onSizeChanged { boxHeight = it.height },
-            )
         }
 
         // Top: the family card, and Show everyone under it while someone is picked.

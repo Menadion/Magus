@@ -4,7 +4,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -56,9 +56,16 @@ import androidx.compose.ui.unit.dp
 // The family box on the bottom edge of the map: "Family", See all, and one column per person.
 // Spec: HANDOFF.md section 3, "Family row". You first, then the family in a fixed order. Since
 // 2026-09-25 evening (M's call, from a ride app's sheet) it sits flush with the screen's sides and
-// bottom, top corners rounded; the person's card and the list rise out of its top (BottomPanel).
+// bottom, top corners rounded. Since 2026-09-26 the card and the list (BottomPanel) take its place.
 @Composable
-fun FamilyRow(people: List<Person>, now: Long, onPick: (String) -> Unit, onSeeAll: () -> Unit, modifier: Modifier = Modifier) {
+fun FamilyRow(
+    people: List<Person>,
+    now: Long,
+    scroll: LazyListState, // held by the map screen, so a scrolled row stays put while a card is open
+    onPick: (String) -> Unit,
+    onSeeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = MaterialTheme.colorScheme
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -74,7 +81,7 @@ fun FamilyRow(people: List<Person>, now: Long, onPick: (String) -> Unit, onSeeAl
                     Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
                 }
             }
-            People(people, now, onPick, modifier = Modifier.padding(end = 12.dp))
+            People(people, now, scroll, onPick, modifier = Modifier.padding(end = 12.dp))
         }
     }
 }
@@ -88,7 +95,7 @@ private val PERSON_WIDTH = 72.dp
 private val PERSON_GAP = 4.dp
 
 @Composable
-private fun People(people: List<Person>, now: Long, onPick: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun People(people: List<Person>, now: Long, list: LazyListState, onPick: (String) -> Unit, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val fits = FIT_WIDTH * people.size + PERSON_GAP * (people.size - 1) <= maxWidth
         if (fits) {
@@ -99,7 +106,6 @@ private fun People(people: List<Person>, now: Long, onPick: (String) -> Unit, mo
             }
             return@BoxWithConstraints
         }
-        val list = rememberLazyListState()
         val scope = rememberCoroutineScope()
         val page = with(LocalDensity.current) { (maxWidth - PERSON_WIDTH - PERSON_GAP).toPx() }
         LazyRow(state = list, horizontalArrangement = Arrangement.spacedBy(PERSON_GAP)) {

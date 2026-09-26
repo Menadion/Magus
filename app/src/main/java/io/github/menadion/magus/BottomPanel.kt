@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -32,21 +33,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 
-// The family box's top corners. The panel's bottom hides behind the box by this much, so it looks
-// like it rises out of the box, whatever the corner radius.
+// The top corners of the bottom boxes: the family box and this panel.
 const val BOX_CORNER = 24
 
-// The panel that rises out of the family box: the person's card, or the See all list. M's spec
-// (2026-09-25 evening, from a ride app's bottom sheet): a margin each side so it reads narrower
-// than the box, touching the box. The panel is as tall as what it holds: the card only takes the
-// room it needs, so the dot it zoomed to stays in view (2026-09-26), and the list asks for half the
-// screen (listPanelHeight). Swiping it down closes it (a
-// pull-down on the list once the list is at its top counts), and so do a tap on the map, the back
-// button, and each content's own close button.
-// The See all list's height: with the handle above it and the bottom hidden behind the box, the
-// panel comes to half the screen.
+// The panel that takes the family box's place: the person's card, or the See all list. Since
+// 2026-09-26 (M's call) it no longer rises out of the family box; the family box slides down and
+// this slides up into the same spot, the same shape, flush with the screen's sides and bottom.
+// It is as tall as what it holds: the card only takes the room it needs, so the dot it zoomed to
+// stays in view, and the list asks for half the screen (listPanelHeight). Swiping it down closes
+// it (a pull-down on the list once the list is at its top counts), and so do a tap on the map, the
+// back button, and each content's own close button; the family box then slides back.
+// The See all list's height: with the handle above it, the panel comes to half the screen.
 @Composable
-fun listPanelHeight(): Dp = (LocalConfiguration.current.screenHeightDp * 0.5f).dp - HANDLE_ROOM.dp - BOX_CORNER.dp
+fun listPanelHeight(): Dp = (LocalConfiguration.current.screenHeightDp * 0.5f).dp - HANDLE_ROOM.dp
 
 // The handle strip at the panel's top: 10 dp above the bar, the 4 dp bar, 6 dp below.
 private const val HANDLE_ROOM = 20
@@ -76,7 +75,6 @@ fun BottomPanel(onClose: () -> Unit, modifier: Modifier = Modifier, content: @Co
 
     Surface(
         modifier = modifier
-            .padding(horizontal = 14.dp)
             .fillMaxWidth()
             .animateContentSize()
             .nestedScroll(pullDown)
@@ -90,11 +88,11 @@ fun BottomPanel(onClose: () -> Unit, modifier: Modifier = Modifier, content: @Co
                     onDragCancel = { dragged.floatValue = 0f },
                 ) { _, dy -> dragged.floatValue += dy }
             },
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = colors.surfaceContainerLow,
-        shadowElevation = 4.dp,
+        shape = RoundedCornerShape(topStart = BOX_CORNER.dp, topEnd = BOX_CORNER.dp),
+        color = colors.surfaceContainerLowest, // the family box's colour, since it fills the same spot
+        shadowElevation = 6.dp,
     ) {
-        Column(modifier = Modifier.padding(bottom = BOX_CORNER.dp)) {
+        Column(modifier = Modifier.navigationBarsPadding()) {
             Box(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) {
                 Box(modifier = Modifier.width(32.dp).height(4.dp).background(colors.outlineVariant, CircleShape))
             }
